@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "Shader.h"
+#include "Shader.hpp"
 
 static bool read_shader_file_content(const char* const file, std::string& content) {
 	content.clear();
@@ -21,7 +21,7 @@ static bool read_shader_file_content(const char* const file, std::string& conten
 	return false;
 }
 
-Shader::Shader(const char* const vertex_file, const char* const fragment_file) {
+Shader::Shader(const char* vertex_file, const char* fragment_file) {
 	std::string vertex_shader_source, fragment_shader_source; 
 	if (!read_shader_file_content(vertex_file, vertex_shader_source))
 		throw std::runtime_error("Error reading vertex shader file");
@@ -53,6 +53,18 @@ Shader::Shader(const char* const vertex_file, const char* const fragment_file) {
 	// Delete the now useless Vertex and Fragment Shader objects
 	glDeleteShader(m_vertex_shader);
 	glDeleteShader(m_fragment_shader);
+}
+
+void Shader::set_matrix4f(const char* uniform_name, const glm::mat4& value) {
+	glUniformMatrix4fv(glGetUniformLocation(m_id, uniform_name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void Shader::set_vec3(const char* uniform_name, const glm::vec3& value) {
+	glUniform3fv(glGetUniformLocation(m_id, uniform_name), 1, glm::value_ptr(value));
+}
+
+void Shader::set_bool(const char* uniform_name, bool value) {
+	glUniform1i(glGetUniformLocation(m_id, uniform_name), value);
 }
 
 void Shader::activate() {

@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 #include <crtdbg.h>
-#include "macro.h"
+#include "macro.hpp"
 
 #define _CRTDBG_MAP_ALLOC
 #ifdef _DEBUG

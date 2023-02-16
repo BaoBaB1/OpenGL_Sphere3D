@@ -1,4 +1,4 @@
-#include "MemoryProfiler.h"
+#include "MemoryProfiler.hpp"
 
 _CrtMemState MemoryProfiler::m_first;
 _CrtMemState MemoryProfiler::m_second;

@@ -1,10 +1,10 @@
-#include "VertexBufferObject.h"
+#include "VertexBufferObject.hpp"
 
 VertexBufferObject::VertexBufferObject() {
 	glGenBuffers(1, &m_id);
 }
 
-void VertexBufferObject::set_data(GLfloat* vertices, const size_t size_in_bytes) {
+void VertexBufferObject::set_data(const void* const vertices, size_t size_in_bytes) {
 	glBufferData(GL_ARRAY_BUFFER, size_in_bytes, vertices, GL_STATIC_DRAW);
 }
 
