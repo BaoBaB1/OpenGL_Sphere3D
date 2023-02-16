@@ -44,5 +44,4 @@ file(GLOB_RECURSE RESOURCES
 add_executable(EngineOpenGL ${SOURCES} ${RESOURCES})
 target_link_libraries(EngineOpenGL glfw)
 set_target_properties(EngineOpenGL PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${ROOT_DIR}")
-set_target_properties(glfw PROPERTIES FOLDER HiddenTargets)
 source_group("Resources" FILES ${RESOURCES})
