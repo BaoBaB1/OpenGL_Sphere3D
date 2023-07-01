@@ -5,6 +5,6 @@
 
 class IDrawable {
 public:
-	virtual void render(GPUBuffers*, Shader*) = 0;
-	virtual ~IDrawable() {}
+  virtual void render(GPUBuffers*, Shader*) = 0;
+  virtual ~IDrawable() {}
 };

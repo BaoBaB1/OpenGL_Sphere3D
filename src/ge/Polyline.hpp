@@ -8,7 +8,7 @@
 
 class Polyline : public Object3D {
 public:
-	Polyline();
-	void render(GPUBuffers*, Shader*) override;
-	void add(const Vertex& point);
+  Polyline();
+  void render(GPUBuffers*, Shader*) override;
+  void add(const Vertex& point);
 };
