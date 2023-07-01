@@ -6,12 +6,12 @@
 
 struct GPUBuffers {
 
-	GPUBuffers();
-	void bind_all();
-	void unbind_all();
-	~GPUBuffers();
+  GPUBuffers();
+  void bind_all();
+  void unbind_all();
+  ~GPUBuffers();
 
-	VertexArrayObject* vao;
-	VertexBufferObject* vbo;
-	ElementBufferObject* ebo;
+  VertexArrayObject* vao;
+  VertexBufferObject* vbo;
+  ElementBufferObject* ebo;
 };
