@@ -1,8 +1,11 @@
 #include "MainWindow.hpp"
+#include "KeyboardHandler.hpp"
+#include "CursorHandler.hpp"
 #include "macro.hpp"
 
 MainWindow::MainWindow(int width, int height, const char* title) :
-  m_width(width), m_height(height), m_title(title) {
+  m_width(width), m_height(height), m_title(title) 
+{
   glfwInit();
   // Tell GLFW what version of OpenGL we are using 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -16,14 +19,43 @@ MainWindow::MainWindow(int width, int height, const char* title) :
   }
   glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(m_window, m_width / 2., m_height / 2.);
-  m_input_handlers.emplace_back(std::unique_ptr<KeyboardHandler>(new KeyboardHandler(this)));
-  m_input_handlers.emplace_back(std::unique_ptr<CursorHandler>(new CursorHandler(this)));
+  m_input_handlers.emplace_back(new KeyboardHandler(this));
+  m_input_handlers.emplace_back(new CursorHandler(this));
+  m_observers.push_back(m_input_handlers[0]);
+  m_observers.push_back(m_input_handlers[1]);
   glfwMakeContextCurrent(m_window);
   gladLoadGL();
   glViewport(0, 0, m_width, m_height);
 }
 
-MainWindow::~MainWindow() {
+void MainWindow::remove(IObserver* observer)
+{
+  auto it = std::find(m_observers.begin(), m_observers.end(), observer);
+  if (it != m_observers.end())
+    delete *it;
+}
+
+void MainWindow::add(IObserver* observer)
+{
+  m_observers.push_back(observer);
+}
+
+void MainWindow::notify(IObserver* observer, bool enable)
+{
+  observer->notify(enable);
+}
+
+void MainWindow::notify_all(bool enable)
+{
+  for (auto pobs : m_observers)
+    pobs->notify(enable);
+}
+
+MainWindow::~MainWindow() 
+{
+  // handlers are observers themselves (added in constructor)
+  for (auto pobs : m_observers)
+    delete pobs;
   glfwDestroyWindow(m_window);
   glfwTerminate();
 }

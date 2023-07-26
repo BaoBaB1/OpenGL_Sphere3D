@@ -4,54 +4,31 @@
 #include <glm/vec3.hpp>
 #include <GLFW/glfw3.h>
 #include <map>
+#include "./utils/IObserver.hpp"
 
 class MainWindow;
 
-enum InputType {
+using namespace OpenGLEngineUtils;
+
+enum InputType
+{
   KEYBOARD = 1, 
   CURSOR
 };
 
-class UserInputHandler {
+class UserInputHandler : public IObserver
+{
 public:
-  UserInputHandler(MainWindow* window, InputType input_type);
-  virtual ~UserInputHandler() {}
+  virtual void enable() { m_disabled = false; }
+  virtual void disable() { m_disabled = true; }
+  void notify(bool _enable) override;
+  bool disabled() const { return m_disabled; }
   InputType type() const { return m_type; }
+protected:
+  UserInputHandler(MainWindow* window, InputType input_type);
 protected:
   InputType m_type;
   MainWindow* m_window;
+  bool m_disabled;
   static std::map<InputType, void*> m_ptrs; // for correct cast in callbacks for glfwSetWindowUserPointer
-};
-
-class KeyboardHandler : public UserInputHandler {
-public:
-  enum InputKey {
-    W = GLFW_KEY_W,
-    A = GLFW_KEY_A,
-    S = GLFW_KEY_S,
-    D = GLFW_KEY_D,
-    ARROW_UP = GLFW_KEY_UP,
-    ARROW_DOWN = GLFW_KEY_DOWN,
-    ARROW_LEFT = GLFW_KEY_LEFT,
-    ARROW_RIGHT = GLFW_KEY_RIGHT
-  };
-  KeyboardHandler(MainWindow* window);
-  ~KeyboardHandler();
-  int key_state(InputKey key) const;
-private:
-  void key_callback(int key, int scancode, int action, int mods);
-  // key, state
-  std::map<int, int> m_keys;
-};
-
-class CursorHandler : public UserInputHandler {
-public:
-  CursorHandler(MainWindow* window);
-  ~CursorHandler();
-  void xy_offset(double& x, double& y);
-private:
-  void cursor_callback(double xpos, double ypos);
-  double m_prev_pos[2] = {};
-  double m_cur_pos[2] = {};
-  bool m_changed;
 };

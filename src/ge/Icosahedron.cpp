@@ -2,6 +2,7 @@
 #include <chrono>
 #include <utility>
 #include "Icosahedron.hpp"
+#include "./core/macro.hpp"
 
 Icosahedron::Icosahedron() : Model(Type::ICOSAHEDRON) {
   m_mesh.vertices().reserve(12);
