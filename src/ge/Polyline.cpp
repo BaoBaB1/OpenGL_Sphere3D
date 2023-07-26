@@ -1,21 +1,17 @@
 #include "Polyline.hpp"
 
-Polyline::Polyline() {
-
-}
-
-void Polyline::render(GPUBuffers* gpu_buffers, Shader* shader) {
+void Polyline::render(GPUBuffers* gpu_buffers, Shader* shader) 
+{
   assert(gpu_buffers != nullptr && shader != nullptr);
   assert(m_mesh.vertices().size() > 0);
   shader->set_bool("applyShading", false);
-  gpu_buffers->bind_all();
-  gpu_buffers->vbo->set_data(m_mesh.vertices().data(), sizeof(Vertex) * m_mesh.vertices().size());
-  gpu_buffers->vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);              // position
-  gpu_buffers->vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6));  // color
-  glDrawArrays(GL_LINE_STRIP, 0, m_mesh.vertices().size());
-  gpu_buffers->unbind_all();
+  RenderConfig cfg;
+  cfg.use_indices = false;
+  cfg.mode = GL_LINE_STRIP;
+  Object3D::render_geom(gpu_buffers, shader, &cfg);
 }
 
-void Polyline::add(const Vertex& point) {
+void Polyline::add(const Vertex& point) 
+{
   m_mesh.append_vertex(point);
 }

@@ -3,9 +3,11 @@
 #include <unordered_map>
 #include "Model.hpp"
 
-class Icosahedron : public Model {
+class Icosahedron : public Model 
+{
 public:
   Icosahedron();
+  std::string name() const override { return "Icosahedron"; }
   void subdivide_triangles(int subdivision_depth);
   void project_points_on_sphere();
 private:

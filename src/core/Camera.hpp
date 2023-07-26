@@ -5,9 +5,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class Camera {
+class Camera 
+{
 public:
-  enum Direction {
+  enum Direction 
+  {
     FORWARD = 1,
     BACKWARD,
     LEFT,
@@ -16,7 +18,6 @@ public:
 public:
   Camera();
   Camera(const glm::vec3& initial_position, float speed, float sensivity);
-  ~Camera() {}
 
   glm::vec3 position() { return m_position; }
   glm::vec3 target() { return m_target; }
@@ -24,12 +25,12 @@ public:
   const glm::vec3& target() const { return m_target; }
   const float sensivity() const { return m_sensivity; }
   const float speed() const { return m_base_speed; }
+  glm::mat4 view_matrix();
   void set_position(const glm::vec3& position) { m_position = position; }
   void set_sensivity(float sensivity) { m_sensivity = sensivity; }
   void set_speed(float speed) { m_base_speed = speed; }
   void move(Direction direction);
   void scale_speed(float delta_time);
-  glm::mat4 view_matrix();
   void add_to_yaw_and_pitch(float x_offset, float y_offset);
   void update_camera_vectors();
   void look_at(const glm::vec3& position);
