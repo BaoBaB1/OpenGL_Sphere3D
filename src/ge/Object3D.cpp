@@ -10,10 +10,11 @@ Object3D::Object3D()
   m_flags = 0;
 }
 
-void Object3D::render_geom(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg)
+void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg)
 {
   assert(gpu_buffers != nullptr && shader != nullptr && cfg != nullptr);
-  if (this->is_rotating())
+  shader->set_bool("applyShading", cfg->apply_shading);
+  if (is_rotating())
     rotate(m_rotation_angle, m_rotation_axis);
   VertexArrayObject* vao = gpu_buffers->vao;
   VertexBufferObject* vbo = gpu_buffers->vbo;
@@ -38,8 +39,9 @@ void Object3D::render_geom(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig
   else
     glDrawArrays(cfg->mode, 0, vertices.size());
   glBindTexture(GL_TEXTURE_2D, 0);
-  if (has_surface() && this->is_normals_visible())
+  if (is_normals_visible())
   {
+    // normals without shading
     shader->set_bool("applyShading", false);
     std::vector<Vertex> normals = std::move(normals_as_lines());
     vbo->set_data(normals.data(), sizeof(Vertex) * normals.size());

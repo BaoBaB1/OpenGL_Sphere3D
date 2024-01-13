@@ -49,12 +49,12 @@ void Model::render(GPUBuffers* gpu_buffers, Shader* shader)
     shader->set_vec3("lightPos", this->center() + glm::vec3(m_model_mat[3]));
     shader->set_vec3("lightColor", glm::vec3(1.f));
   }
-  shader->set_bool("applyShading", m_shading_mode != IShaderable::ShadingMode::NO_SHADING && !this->is_light_source());
   shader->set_bool("applyTexture", !m_texture.disabled());
   RenderConfig cfg;
   cfg.mode = GL_TRIANGLES;
   cfg.use_indices = true;
-  Object3D::render_geom(gpu_buffers, shader, &cfg);
+  cfg.apply_shading = m_shading_mode != IShaderable::ShadingMode::NO_SHADING && !this->is_light_source();
+  Object3D::render(gpu_buffers, shader, &cfg);
 }
 
 void Model::apply_shading(IShaderable::ShadingMode mode) 

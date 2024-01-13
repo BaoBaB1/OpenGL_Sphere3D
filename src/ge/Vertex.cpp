@@ -36,6 +36,10 @@ Vertex Vertex::operator/(float value) const {
   return Vertex(position / value);
 }
 
+Vertex Vertex::operator*(float value) const {
+  return Vertex(position * value);
+}
+
 bool Vertex::operator==(const Vertex& other) const {
   return color == other.color && position == other.position && normal == other.normal;
 }

@@ -26,6 +26,7 @@
 #include "./ge/Icosahedron.hpp"
 #include "./ge/Polyline.hpp"
 #include "./ge/Pyramid.hpp"
+#include "./ge/BezierCurve.hpp"
 
 static bool is_gui_opened();
 static void setup_opengl();
@@ -77,7 +78,7 @@ void SceneRenderer::render_scene()
     m_shader->set_matrix4f("modelMatrix", obj->model_matrix());
     m_shader->set_matrix4f("viewMatrix", m_camera->view_matrix());
     m_shader->set_matrix4f("projectionMatrix", m_projection_mat);
-    obj->render(m_gpu_buffers.get(), m_shader.get());
+    static_cast<IDrawable*>(&(*obj))->render(m_gpu_buffers.get(), m_shader.get());
   }
 }
 
@@ -134,6 +135,20 @@ void SceneRenderer::create_scene()
   pyr->set_color(glm::vec4(0.976f, 0.212f, 0.98f, 1.f));
   pyr->apply_shading(IShaderable::ShadingMode::FLAT_SHADING);
   m_drawables.push_back(std::move(pyr));
+
+  std::unique_ptr<BezierCurve> bc = std::make_unique<BezierCurve>(BezierCurve::Type::Quadratic);
+  bc->set_start_point(Vertex());
+  bc->set_end_point(Vertex(2.5f, 0.f, 0.f));
+  bc->set_control_points({ Vertex(1.25f, 2.f, 0.f) });
+  bc->set_color(glm::vec4(1.f, 0.f, 0.f, 1.f));
+  m_drawables.push_back(std::move(bc));
+
+  std::unique_ptr<BezierCurve> bc2 = std::make_unique<BezierCurve>(BezierCurve::Type::Cubic);
+  bc2->set_start_point(Vertex());
+  bc2->set_end_point(Vertex(0.f, 0.f, -2.5f));
+  bc2->set_control_points({ Vertex(0.f, 2.f, -1.25f), Vertex {0.f, -2.f, -1.75} });
+  bc2->set_color(glm::vec4(1.f, 0.f, 0.f, 1.f));
+  m_drawables.push_back(std::move(bc2));
 }
 
 void SceneRenderer::handle_input()

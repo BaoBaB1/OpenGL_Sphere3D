@@ -45,10 +45,11 @@ protected:
   {
     int mode;
     bool use_indices;
+    bool apply_shading;
   };
 protected:
   Object3D();
-  void render_geom(GPUBuffers*, Shader*, RenderConfig*);
+  void render(GPUBuffers*, Shader*, RenderConfig*);
   void set_flag(Flag flag, bool value) { value ? set_flag(flag) : clear_flag(flag); }
   void set_flag(Flag flag) { m_flags |= flag; }
   void clear_flag(Flag flag) { m_flags &= ~flag; }
