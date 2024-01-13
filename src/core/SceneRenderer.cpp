@@ -242,6 +242,9 @@ void SceneRenderer::render_gui()
 
           ImGui::Separator();
           ImGui::Text("Translation");
+          g_floats[0] = drawable->m_translation.x;
+          g_floats[1] = drawable->m_translation.y;
+          g_floats[2] = drawable->m_translation.z;
           if (ImGui::SliderFloat("X", &g_floats[0], -10.0f, 10.0f))
             // prev = drawable->m_translation.x; curr = g_floats[0]; diff = curr - prev
             drawable->translate(glm::vec3(g_floats[0] - drawable->m_translation.x, 0.f, 0.f));

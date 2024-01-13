@@ -35,9 +35,9 @@ void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg
   vao->link_attrib(3, 2, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 10));   // texture coords
   glBindTexture(GL_TEXTURE_2D, m_texture.id());
   if (cfg->use_indices)
-    glDrawElements(cfg->mode, indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(cfg->mode, (GLsizei)(indices.size()), GL_UNSIGNED_INT, nullptr);
   else
-    glDrawArrays(cfg->mode, 0, vertices.size());
+    glDrawArrays(cfg->mode, 0, (GLsizei)vertices.size());
   glBindTexture(GL_TEXTURE_2D, 0);
   if (is_normals_visible())
   {
@@ -47,7 +47,7 @@ void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg
     vbo->set_data(normals.data(), sizeof(Vertex) * normals.size());
     vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
     vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
-    glDrawArrays(GL_LINES, 0, normals.size());
+    glDrawArrays(GL_LINES, 0, (GLsizei)normals.size());
   }
   gpu_buffers->unbind_all();
 }
