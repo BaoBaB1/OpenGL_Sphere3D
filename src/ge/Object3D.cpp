@@ -13,21 +13,19 @@ Object3D::Object3D()
 void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg)
 {
   assert(gpu_buffers != nullptr && shader != nullptr && cfg != nullptr);
+  if (m_bbox.is_empty())
+  {
+    calculate_bbox();
+  }
   shader->set_bool("applyShading", cfg->apply_shading);
   if (is_rotating())
+  {
     rotate(m_rotation_angle, m_rotation_axis);
+  }
   VertexArrayObject* vao = gpu_buffers->vao;
   VertexBufferObject* vbo = gpu_buffers->vbo;
-  ElementBufferObject* ebo = gpu_buffers->ebo;
   gpu_buffers->bind_all();
-
   std::vector<Vertex>& vertices = m_mesh.vertices();
-  std::vector<GLuint> indices;
-  if (cfg->use_indices)
-  {
-    indices = std::move(m_mesh.faces_as_indices());
-    ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
-  }
   vbo->set_data(vertices.data(), sizeof(Vertex) * vertices.size());
   vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                         // position
   vao->link_attrib(1, 3, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 3));    // normal
@@ -35,9 +33,17 @@ void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg
   vao->link_attrib(3, 2, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 10));   // texture coords
   glBindTexture(GL_TEXTURE_2D, m_texture.id());
   if (cfg->use_indices)
+  {
+    std::vector<GLuint> indices;
+    ElementBufferObject* ebo = gpu_buffers->ebo;
+    indices = std::move(m_mesh.faces_as_indices());
+    ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
     glDrawElements(cfg->mode, (GLsizei)(indices.size()), GL_UNSIGNED_INT, nullptr);
+  }
   else
+  {
     glDrawArrays(cfg->mode, 0, (GLsizei)vertices.size());
+  }
   glBindTexture(GL_TEXTURE_2D, 0);
   if (is_normals_visible())
   {
@@ -48,6 +54,24 @@ void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg
     vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
     vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
     glDrawArrays(GL_LINES, 0, (GLsizei)normals.size());
+  }
+  if (is_bbox_visible())
+  {
+    shader->set_bool("applyShading", false);
+    std::array<glm::vec3, 8> bbox_points = m_bbox.points();
+    std::array<Vertex, 8> converted;
+    for (size_t i = 0; i < 8; i++)
+    {
+      converted[i] = Vertex(bbox_points[i]);
+      converted[i].color = glm::vec4(0.f, 1.f, 0.f, 1.f);
+    }
+    auto indices = m_bbox.lines_indices();
+    ElementBufferObject* ebo = gpu_buffers->ebo;
+    vbo->set_data(converted.data(), sizeof(Vertex) * 8);
+    vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
+    vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
+    ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
+    glDrawElements(GL_LINES, (GLsizei)indices.size(), GL_UNSIGNED_INT, nullptr);
   }
   gpu_buffers->unbind_all();
 }
@@ -112,4 +136,29 @@ std::vector<Vertex> Object3D::normals_as_lines()
     index += 2;
   }
   return normals;
+}
+
+BoundingBox Object3D::calculate_bbox()
+{
+  glm::vec3 pos_min, pos_max;
+  pos_min = pos_max = m_mesh.vertices()[0].position;
+  for (size_t i = 1; i < m_mesh.vertices().size(); i++)
+  {
+    const glm::vec3 pos = m_mesh.vertices()[i].position;
+    if (pos.x > pos_max.x)
+      pos_max.x = pos.x;
+    if (pos.x < pos_min.x)
+      pos_min.x = pos.x;
+    if (pos.y > pos_max.y)
+      pos_max.y = pos.y;
+    if (pos.y < pos_min.y)
+      pos_min.y = pos.y;
+    if (pos.z > pos_max.z)
+      pos_max.z = pos.z;
+    if (pos.z < pos_min.z)
+      pos_min.z = pos.z;
+  }
+  m_bbox.set_min(pos_min);
+  m_bbox.set_max(pos_max);
+  return m_bbox;
 }

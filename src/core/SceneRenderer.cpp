@@ -309,6 +309,10 @@ void SceneRenderer::render_gui()
             g_bools[3] = model->is_normals_visible();
             if (ImGui::Checkbox("Visible normals", &g_bools[3]))
               model->visible_normals(g_bools[3]);
+            ImGui::SameLine();
+            g_bools[4] = model->is_bbox_visible();
+            if (ImGui::Checkbox("Draw bounding box", &g_bools[4]))
+              model->visible_bbox(g_bools[4]);
             std::vector<std::pair<IShaderable::ShadingMode, std::string>> modes(3);
             for (int i = 1; i <= 3; i++)
             {
