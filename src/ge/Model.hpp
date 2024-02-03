@@ -8,19 +8,11 @@
 class Model : public Object3D, public IShaderable 
 {
 public:
-  enum Type 
-  {
-    ICOSAHEDRON = 1, // Icosahedron => Sphere
-    CUBE,
-    PYRAMID
-  };
-public:
   bool has_surface() const override { return true; }
   void set_color(const glm::vec4& color) override;
   void render(GPUBuffers*, Shader*) override;
   void apply_shading(IShaderable::ShadingMode mode) override;
   glm::vec3 center();
-  Type type() const { return m_type; }
   ShadingMode shading_mode() const { return m_shading_mode; }
 protected:
   // Wrapper for Vertex. Vertex::operator== compares not only position
@@ -49,16 +41,14 @@ protected:
     std::unordered_map<WrappedVertex, GLuint, VertexHasher, std::equal_to<WrappedVertex>> m_map_vert; // vertex, index
   };
 protected:
-  explicit Model(Type type);
+  Model();
   Model(const Model&) = default;
   Model(Model&&) = default;
   Model& operator=(const Model&) = default;
   Model& operator=(Model&&) = default;
   void calc_normals(Mesh&, IShaderable::ShadingMode);
 protected:
-  Type m_type;
   IShaderable::ShadingMode m_shading_mode;
-  //unsigned int m_flags;
   VertexFinder m_vertex_finder;
   std::array<Mesh, 3> m_cached_meshes;
 };

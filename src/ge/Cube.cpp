@@ -1,6 +1,7 @@
 #include "Cube.hpp"
 
-Cube::Cube() : Model(Type::CUBE) {
+Cube::Cube()
+{
   m_mesh.reserve_vertices(24);
   m_mesh.reserve_faces(12);
   for (int i = 0; i < 3; ++i) {

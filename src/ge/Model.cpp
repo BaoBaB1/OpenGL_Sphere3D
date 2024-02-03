@@ -1,9 +1,8 @@
 #include "Model.hpp"
 
-Model::Model(Type type)
+Model::Model()
 {
   m_flags = 0;
-  m_type = type;
   m_shading_mode = IShaderable::ShadingMode::NO_SHADING;
 }
 

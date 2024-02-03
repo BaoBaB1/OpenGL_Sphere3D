@@ -4,7 +4,8 @@
 #include "Icosahedron.hpp"
 #include "./core/macro.hpp"
 
-Icosahedron::Icosahedron() : Model(Type::ICOSAHEDRON) {
+Icosahedron::Icosahedron()
+{
   m_mesh.vertices().reserve(12);
   m_mesh.faces().reserve(20);
   float phi = (1.0f + std::sqrt(5.0f)) * 0.5f; // golden ratio
