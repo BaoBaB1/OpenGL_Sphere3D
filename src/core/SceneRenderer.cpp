@@ -18,10 +18,12 @@
 #include "VertexArrayObject.hpp"
 #include "VertexBufferObject.hpp"
 #include "ElementBufferObject.hpp"
+#include "FrameBufferObject.hpp"
 #include "macro.hpp"
 #include "Camera.hpp"
 #include "KeyboardHandler.hpp"
-#include "CursorHandler.hpp"
+#include "CursorPositionHandler.hpp"
+#include "MouseInputHandler.hpp"
 #include "./ge/Cube.hpp"
 #include "./ge/Icosahedron.hpp"
 #include "./ge/Polyline.hpp"
@@ -33,6 +35,18 @@ static void setup_opengl();
 static void setup_imgui(GLFWwindow*);
 static std::string shading_mode_to_str(IShaderable::ShadingMode mode);
 
+static float quadVertices[] =
+{ // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+  // positions   // texCoords
+  -1.0f,  1.0f,  0.0f, 1.0f,
+  -1.0f, -1.0f,  0.0f, 0.0f,
+   1.0f, -1.0f,  1.0f, 0.0f,
+
+  -1.0f,  1.0f,  0.0f, 1.0f,
+   1.0f, -1.0f,  1.0f, 0.0f,
+   1.0f,  1.0f,  1.0f, 1.0f
+};
+
 SceneRenderer::SceneRenderer()
 {
   m_window = std::make_unique<MainWindow>(800, 800, "OpenGLWindow");
@@ -43,6 +57,17 @@ SceneRenderer::SceneRenderer()
   m_camera->look_at(glm::vec3(2.f, 0.5f, 0.5f));
   m_projection_mat = glm::mat4(1.f);
   m_projection_mat = glm::perspective(glm::radians(45.f), (float)m_window->height() / m_window->width(), 0.1f, 100.f);
+
+  const int w = m_window->width();
+  const int h = m_window->height();
+  m_fbo = std::make_unique<FrameBufferObject>(w, h);
+  m_fbo->create_texture(w, h);
+  m_fbo->create_depth_buffer();
+  m_fbo->create_shader("./src/glsl/fbo_default_shader.vert", "./src/glsl/fbo_default_shader.frag");
+  m_fbo->bind();
+  m_fbo->attach_depth_buffer();
+  m_fbo->attach_current_texture();
+  m_fbo->unbind();
 }
 
 void SceneRenderer::render()
@@ -51,18 +76,40 @@ void SceneRenderer::render()
   ::setup_opengl();
   ::setup_imgui(gl_window);
   create_scene();
-  m_shader->activate();
-  while (!glfwWindowShouldClose(gl_window)) 
+  assert(m_fbo->is_complete());
+  ScreenQuad screen_quad;
+
+  while (!glfwWindowShouldClose(gl_window))
   {
-    // color of the background
-    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-    // Clean the back buffer and assign the new color to it
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwPollEvents();
     handle_input();
+    // render to custom framebuffer
+    m_shader->activate();
+    m_fbo->bind();
+    glViewport(0, 0, m_window->width(), m_window->height());
+    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
     // render scene before gui to make sure that imgui window always will be on top of drawn entities
     render_scene();
     render_gui();
+    m_fbo->unbind();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // color of the background
+    glViewport(0, 0, m_window->width(), m_window->height());
+    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+    // Clean the back buffer and assign the new color to it
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    m_fbo->shader().activate();
+    screen_quad.vao.bind();
+    glDisable(GL_DEPTH_TEST);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_fbo->texture().id());
+    screen_quad.render();
+    screen_quad.vao.unbind();
+
     glfwSwapBuffers(gl_window);
   }
   ImGui_ImplOpenGL3_Shutdown();
@@ -72,7 +119,7 @@ void SceneRenderer::render()
 
 void SceneRenderer::render_scene()
 {
-  for (const auto& obj : m_drawables) 
+  for (const auto& obj : m_drawables)
   {
     m_shader->set_vec3("viewPos", m_camera->position());
     m_shader->set_matrix4f("modelMatrix", obj->model_matrix());
@@ -105,7 +152,7 @@ void SceneRenderer::create_scene()
   sun->subdivide_triangles(4);
   sun->project_points_on_sphere();
   m_drawables.push_back(std::move(sun));
-  
+
   std::unique_ptr<Icosahedron> sphere = std::make_unique<Icosahedron>();
   sphere->translate(glm::vec3(2.5f, 0.5f, 2.f));
   sphere->set_color(glm::vec4(1.f, 0.f, 0.f, 1.f));
@@ -114,7 +161,7 @@ void SceneRenderer::create_scene()
   sphere->scale(glm::vec3(0.3f));
   sphere->apply_shading(IShaderable::ShadingMode::SMOOTH_SHADING);
   m_drawables.push_back(std::move(sphere));
-  
+
   std::unique_ptr<Cube> c = std::make_unique<Cube>();
   c->translate(glm::vec3(0.5f, 0.f, 0.5f));
   c->scale(glm::vec3(0.5f));
@@ -130,7 +177,7 @@ void SceneRenderer::create_scene()
   m_drawables.push_back(std::move(c2));
 
   std::unique_ptr<Pyramid> pyr = std::make_unique<Pyramid>();
-  pyr->translate(glm::vec3(0.5f, 0.f,  2.f));
+  pyr->translate(glm::vec3(0.5f, 0.f, 2.f));
   pyr->scale(glm::vec3(0.5f));
   pyr->set_color(glm::vec4(0.976f, 0.212f, 0.98f, 1.f));
   pyr->apply_shading(IShaderable::ShadingMode::FLAT_SHADING);
@@ -155,13 +202,13 @@ void SceneRenderer::handle_input()
 {
   ImGuiIO& io = ImGui::GetIO();
   m_camera->scale_speed(io.DeltaTime);
-  for (auto phandler: m_window->input_handlers()) 
+  for (auto phandler : m_window->input_handlers())
   {
     if (phandler->disabled())
       continue;
     switch (phandler->type())
     {
-    case InputType::KEYBOARD:
+    case UserInputHandler::KEYBOARD:
     {
       KeyboardHandler* kh = static_cast<KeyboardHandler*>(phandler);
       if (kh->key_state(InputKey::W) == GLFW_PRESS || kh->key_state(InputKey::ARROW_UP) == GLFW_PRESS)
@@ -174,13 +221,27 @@ void SceneRenderer::handle_input()
         m_camera->move(Camera::Direction::RIGHT);
     }
     break;
-    case InputType::CURSOR:
+    case UserInputHandler::CURSOR_POSITION:
     {
-      CursorHandler* ch = static_cast<CursorHandler*>(phandler);
+      CursorPositionHandler* ch = static_cast<CursorPositionHandler*>(phandler);
       double x, y;
       ch->xy_offset(x, y);
       if (x != 0. || y != 0.)
         m_camera->add_to_yaw_and_pitch(x, y);
+    }
+    break;
+    case UserInputHandler::MOUSE_INPUT:
+    {
+      MouseInputHandler* mh = static_cast<MouseInputHandler*>(phandler);
+      if (mh->is_left_button_clicked())
+      {
+        int x, y;
+        x = mh->x();
+        y = mh->y();
+        float z;
+        glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+        mh->update_left_button_click_state();
+      }
     }
     break;
     default:
@@ -205,7 +266,7 @@ void SceneRenderer::render_gui()
     m_window->notify_all(!g_bools[0]);
     if (::is_gui_opened())
       glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    else 
+    else
       glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   }
   if (::is_gui_opened())
@@ -226,7 +287,7 @@ void SceneRenderer::render_gui()
     if (ImGui::CollapsingHeader("Objects"))
     {
       size_t id = 1;
-      for (const auto& drawable : m_drawables) 
+      for (const auto& drawable : m_drawables)
       {
         std::string name = drawable->name() + std::to_string(id++);
         if (ImGui::TreeNode(name.c_str()))
@@ -234,8 +295,8 @@ void SceneRenderer::render_gui()
           float len = ImGui::GetWindowSize().x;
           // multiply by 3 because 'nesting' level is 3.
           float indent = ImGui::GetStyle().IndentSpacing * 3;
-          indent += ImGui::CalcTextSize("X").x; 
-          indent += ImGui::CalcTextSize("Y").x; 
+          indent += ImGui::CalcTextSize("X").x;
+          indent += ImGui::CalcTextSize("Y").x;
           indent += ImGui::CalcTextSize("Z").x;
           len -= indent;
           ImGui::PushItemWidth(len / 3);
@@ -275,7 +336,7 @@ void SceneRenderer::render_gui()
           {
             // if is_rotating == true, then rotation is made every frame in Object3D::render_geom()
             if (!drawable->is_rotating())
-                drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
+              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
           }
           if (ImGui::SliderFloat("X##3", &drawable->m_rotation_axis.x, 0.f, 1.f))
           {
@@ -302,6 +363,11 @@ void SceneRenderer::render_gui()
             drawable->set_color(drawable->m_color);
           ImGui::Separator();
 
+          ImGui::SameLine();
+          g_bools[4] = drawable->is_bbox_visible();
+          if (ImGui::Checkbox("Show bounding box", &g_bools[4]))
+            drawable->visible_bbox(g_bools[4]);
+
           // TODO: rewrite later as e.g. 2D Circle has surface but it won't be derived from Model class
           if (drawable->has_surface())
           {
@@ -309,10 +375,6 @@ void SceneRenderer::render_gui()
             g_bools[3] = model->is_normals_visible();
             if (ImGui::Checkbox("Visible normals", &g_bools[3]))
               model->visible_normals(g_bools[3]);
-            ImGui::SameLine();
-            g_bools[4] = model->is_bbox_visible();
-            if (ImGui::Checkbox("Draw bounding box", &g_bools[4]))
-              model->visible_bbox(g_bools[4]);
             std::vector<std::pair<IShaderable::ShadingMode, std::string>> modes(3);
             for (int i = 1; i <= 3; i++)
             {
@@ -343,6 +405,22 @@ void SceneRenderer::render_gui()
   }
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+SceneRenderer::ScreenQuad::ScreenQuad()
+{
+  vao.bind();
+  vbo.bind();
+  vbo.set_data(quadVertices, sizeof(quadVertices));
+  vao.link_attrib(0, 2, GL_FLOAT, sizeof(float) * 4, nullptr);
+  vao.link_attrib(1, 2, GL_FLOAT, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+  vbo.unbind();
+  vao.unbind();
+};
+
+void SceneRenderer::ScreenQuad::render()
+{
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 static void setup_opengl()
