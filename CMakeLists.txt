@@ -42,8 +42,8 @@ target_include_directories("imgui" PUBLIC ${IMGUI_PATH})
 # OpenGLEngine sources
 include_directories(src)
 file(GLOB SHADERS 
-	src/glsl/shader.frag
-	src/glsl/shader.vert
+	src/glsl/*.frag
+	src/glsl/*.vert
 	)
 file(GLOB_RECURSE SOURCES
 	"src/*.h"
