@@ -57,21 +57,7 @@ void Object3D::render(GPUBuffers* gpu_buffers, Shader* shader, RenderConfig* cfg
   }
   if (is_bbox_visible())
   {
-    shader->set_bool("applyShading", false);
-    std::array<glm::vec3, 8> bbox_points = m_bbox.points();
-    std::array<Vertex, 8> converted;
-    for (size_t i = 0; i < 8; i++)
-    {
-      converted[i] = Vertex(bbox_points[i]);
-      converted[i].color = glm::vec4(0.f, 1.f, 0.f, 1.f);
-    }
-    auto indices = m_bbox.lines_indices();
-    ElementBufferObject* ebo = gpu_buffers->ebo;
-    vbo->set_data(converted.data(), sizeof(Vertex) * 8);
-    vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
-    vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
-    ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
-    glDrawElements(GL_LINES, (GLsizei)indices.size(), GL_UNSIGNED_INT, nullptr);
+    m_bbox.render(gpu_buffers, shader);
   }
   gpu_buffers->unbind_all();
 }

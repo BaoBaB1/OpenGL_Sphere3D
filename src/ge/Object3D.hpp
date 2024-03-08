@@ -4,9 +4,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "./core/Shader.hpp"
 #include "./core/GPUBuffers.hpp"
+#include "./core/Texture.hpp"
 #include "./ge/IDrawable.hpp"
 #include "./ge/Mesh.hpp"
-#include "./ge/Texture.hpp"
 #include "./ge/BoundingBox.hpp"
 
 class Object3D : public IDrawable
