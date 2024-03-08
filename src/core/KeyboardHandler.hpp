@@ -15,7 +15,6 @@ public:
     ARROW_RIGHT = GLFW_KEY_RIGHT
   };
   KeyboardHandler(MainWindow* window);
-  ~KeyboardHandler();
   int key_state(InputKey key) const;
 private:
   void key_callback(int key, int scancode, int action, int mods);

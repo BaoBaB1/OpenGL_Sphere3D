@@ -10,25 +10,27 @@ class MainWindow;
 
 using namespace OpenGLEngineUtils;
 
-enum InputType
-{
-  KEYBOARD = 1, 
-  CURSOR
-};
-
 class UserInputHandler : public IObserver
 {
+public:
+  enum HandlerType
+  {
+    KEYBOARD = 1,
+    CURSOR_POSITION,
+    MOUSE_INPUT,
+  };
 public:
   virtual void enable() { m_disabled = false; }
   virtual void disable() { m_disabled = true; }
   void notify(bool _enable) override;
   bool disabled() const { return m_disabled; }
-  InputType type() const { return m_type; }
+  HandlerType type() const { return m_type; }
 protected:
-  UserInputHandler(MainWindow* window, InputType input_type);
+  UserInputHandler(MainWindow* window, HandlerType input_type);
+  ~UserInputHandler();
 protected:
-  InputType m_type;
+  HandlerType m_type;
   MainWindow* m_window;
   bool m_disabled;
-  static std::map<InputType, void*> m_ptrs; // for correct cast in callbacks for glfwSetWindowUserPointer
+  static std::map<HandlerType, void*> m_ptrs; // for correct cast in callbacks for glfwSetWindowUserPointer
 };

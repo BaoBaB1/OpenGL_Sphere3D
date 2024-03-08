@@ -1,40 +1,26 @@
-#include <stdexcept>
-#include "CursorHandler.hpp"
+#include "CursorPositionHandler.hpp"
 #include "MainWindow.hpp"
 
-CursorHandler::CursorHandler(MainWindow* window) : UserInputHandler(window, InputType::CURSOR) 
+CursorPositionHandler::CursorPositionHandler(MainWindow* window) : UserInputHandler(window, HandlerType::CURSOR_POSITION)
 {
-  if (m_ptrs.find(this->type()) != m_ptrs.end()) 
-    throw std::runtime_error("Cursor input handler already exists");
-  m_ptrs[this->type()] = this;
-  auto callback = [](GLFWwindow* window, double xpos, double ypos) 
-  {
-    glfwSetWindowUserPointer(window, m_ptrs[InputType::CURSOR]);
-    static_cast<CursorHandler*>(glfwGetWindowUserPointer(window))->cursor_callback(xpos, ypos);
-  };
+  auto callback = [](GLFWwindow* window, double xpos, double ypos)
+    {
+      glfwSetWindowUserPointer(window, m_ptrs[HandlerType::CURSOR_POSITION]);
+      static_cast<CursorPositionHandler*>(glfwGetWindowUserPointer(window))->callback(xpos, ypos);
+    };
   glfwSetCursorPosCallback(m_window->gl_window(), callback);
   glfwGetCursorPos(m_window->gl_window(), &m_cur_pos[0], &m_cur_pos[1]);
   m_prev_pos[0] = m_prev_pos[1] = 0;
   m_changed = m_renew_callback = false;
 }
 
-CursorHandler::~CursorHandler() 
-{
-  m_ptrs.erase(InputType::CURSOR);
-}
-
-void CursorHandler::enable() 
-{
-  UserInputHandler::enable();
-}
-
-void CursorHandler::disable() 
+void CursorPositionHandler::disable()
 {
   UserInputHandler::disable();
   m_renew_callback = true;
 }
 
-void CursorHandler::cursor_callback(double xpos, double ypos) 
+void CursorPositionHandler::callback(double xpos, double ypos)
 {
   if (!m_disabled)
   {
@@ -56,7 +42,7 @@ void CursorHandler::cursor_callback(double xpos, double ypos)
   }
 }
 
-void CursorHandler::xy_offset(double& x, double& y) 
+void CursorPositionHandler::xy_offset(double& x, double& y)
 {
   if (m_changed)
   {

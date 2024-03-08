@@ -2,7 +2,16 @@
 #include "glad/glad.h"
 #include <stdexcept>
 
-Texture::Texture() : m_id(0), m_width(0), m_height(0), m_nchannels(0), m_disabled(true) {
+Texture::Texture() {}
+
+Texture::Texture(int w, int h) : m_height(h), m_width(w), m_nchannels(3)
+{
+  glGenTextures(1, &m_id);
+  glBindTexture(GL_TEXTURE_2D, m_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 Texture::Texture(const std::string& filename) {
@@ -33,7 +42,15 @@ void Texture::load(const std::string& filename) {
 }
 
 Texture::~Texture() {
-  if (m_id != 0) {
-    glDeleteTextures(1, &m_id);
-  }
+  glDeleteTextures(1, &m_id);
+}
+
+void Texture::bind()
+{
+  glBindTexture(GL_TEXTURE_2D, m_id);
+}
+
+void Texture::unbind()
+{
+  glBindTexture(GL_TEXTURE_2D, 0);
 }

@@ -1,23 +1,16 @@
 #include <stdexcept>
+
 #include "MainWindow.hpp"
 #include "KeyboardHandler.hpp"
 
-KeyboardHandler::KeyboardHandler(MainWindow* window) : UserInputHandler(window, InputType::KEYBOARD) 
+KeyboardHandler::KeyboardHandler(MainWindow* window) : UserInputHandler(window, HandlerType::KEYBOARD)
 {
-  if (m_ptrs.find(this->type()) != m_ptrs.end())
-    throw std::runtime_error("Keyboard input handler already exists");
-  m_ptrs[this->type()] = this;
   auto key_callback = [](GLFWwindow* window, int key, int scancode, int action, int mods) 
   {
-    glfwSetWindowUserPointer(window, m_ptrs[InputType::KEYBOARD]);
+    glfwSetWindowUserPointer(window, m_ptrs[HandlerType::KEYBOARD]);
     static_cast<KeyboardHandler*>(glfwGetWindowUserPointer(window))->key_callback(key, scancode, action, mods);
   };
   glfwSetKeyCallback(m_window->gl_window(), key_callback);
-}
-
-KeyboardHandler::~KeyboardHandler() 
-{
-  m_ptrs.erase(InputType::KEYBOARD);
 }
 
 void KeyboardHandler::key_callback(int key, int scancode, int action, int mods) 

@@ -8,8 +8,11 @@
 class Texture {
 public:
   Texture();
+  Texture(int w, int h);
   Texture(const std::string&) noexcept(false);
   ~Texture();
+  void bind();
+  void unbind();
   void load(const std::string&);
   void disable() { m_disabled = true; }
   void enable() { m_disabled = false; }
@@ -19,9 +22,9 @@ public:
   int nchannels() const { return m_nchannels; }
   GLuint id() const { return m_id; }
 private:
-  int m_width;
-  int m_height;
-  int m_nchannels;
-  bool m_disabled;
-  GLuint m_id;
+  int m_width = 0;
+  int m_height = 0;
+  int m_nchannels = 0;
+  bool m_disabled = true;
+  GLuint m_id = 0;
 };
