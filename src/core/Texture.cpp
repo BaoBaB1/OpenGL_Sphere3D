@@ -4,13 +4,14 @@
 
 Texture::Texture() {}
 
-Texture::Texture(int w, int h) : m_height(h), m_width(w), m_nchannels(3)
+Texture::Texture(int w, int h, GLint internalformat, GLint format, GLint type) 
+  : m_height(h), m_width(w), m_nchannels(3)
 {
   glGenTextures(1, &m_id);
   glBindTexture(GL_TEXTURE_2D, m_id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalformat, w, h, 0, format, type, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_NEAREST*/GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_NEAREST*/GL_LINEAR);
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 

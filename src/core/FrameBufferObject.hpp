@@ -12,7 +12,7 @@ public:
   ~FrameBufferObject();
   template<typename... Args>
   void create_shader(Args&&... args);
-  void create_texture(int w, int h);
+  void create_texture(int w, int h, GLint internalformat, GLint format, GLint type);
   void create_depth_buffer();
   void attach_depth_buffer();
   void attach_current_texture();

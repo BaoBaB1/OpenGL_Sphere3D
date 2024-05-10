@@ -8,7 +8,7 @@
 class Texture {
 public:
   Texture();
-  Texture(int w, int h);
+  Texture(int w, int h, GLint internalformat, GLint format, GLint type);
   Texture(const std::string&) noexcept(false);
   ~Texture();
   void bind();

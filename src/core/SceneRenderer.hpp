@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <map>
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "FrameBufferObject.hpp"
@@ -16,8 +17,8 @@ class SceneRenderer {
 public:
   SceneRenderer();
   void render();
-private: 
-  struct ScreenQuad 
+private:
+  struct ScreenQuad
   {
     ScreenQuad();
     void render();
@@ -25,15 +26,15 @@ private:
     VertexBufferObject vbo;
   };
   void handle_input();
-  void render_scene();
+  void render_scene(Shader& shader, bool assignIndices = false);
   void create_scene();
   void render_gui();
 private:
   std::unique_ptr<MainWindow> m_window;
-  std::unique_ptr<Shader> m_shader;
+  std::unique_ptr<Shader> m_main_shader;
   std::unique_ptr<Camera> m_camera;
   std::unique_ptr<GPUBuffers> m_gpu_buffers;
-  std::unique_ptr<FrameBufferObject> m_fbo;
+  std::map<std::string, std::unique_ptr<FrameBufferObject>> m_fbos;
   std::vector<std::unique_ptr<Object3D>> m_drawables;
   glm::mat4 m_projection_mat;
 };

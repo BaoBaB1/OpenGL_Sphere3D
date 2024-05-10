@@ -50,7 +50,7 @@ static float quadVertices[] =
 SceneRenderer::SceneRenderer()
 {
   m_window = std::make_unique<MainWindow>(800, 800, "OpenGLWindow");
-  m_shader = std::make_unique<Shader>("./src/glsl/shader.vert", "./src/glsl/shader.frag");
+  m_main_shader = std::make_unique<Shader>("./src/glsl/shader.vert", "./src/glsl/shader.frag");
   m_gpu_buffers = std::make_unique<GPUBuffers>();
   m_camera = std::make_unique<Camera>();
   m_camera->set_position(glm::vec3(-4.f, 2.f, 3.f));
@@ -60,14 +60,26 @@ SceneRenderer::SceneRenderer()
 
   const int w = m_window->width();
   const int h = m_window->height();
-  m_fbo = std::make_unique<FrameBufferObject>(w, h);
-  m_fbo->create_texture(w, h);
-  m_fbo->create_depth_buffer();
-  m_fbo->create_shader("./src/glsl/fbo_default_shader.vert", "./src/glsl/fbo_default_shader.frag");
-  m_fbo->bind();
-  m_fbo->attach_depth_buffer();
-  m_fbo->attach_current_texture();
-  m_fbo->unbind();
+
+  auto main_scene_fbo = std::make_unique<FrameBufferObject>(w, h);
+  main_scene_fbo->create_texture(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+  main_scene_fbo->create_depth_buffer();
+  main_scene_fbo->create_shader("./src/glsl/fbo_default_shader.vert", "./src/glsl/fbo_default_shader.frag");
+  main_scene_fbo->bind();
+  main_scene_fbo->attach_depth_buffer();
+  main_scene_fbo->attach_current_texture();
+  main_scene_fbo->unbind();
+  m_fbos["main"] = std::move(main_scene_fbo);
+
+  auto picking_fbo = std::make_unique<FrameBufferObject>(w, h);
+  picking_fbo->create_texture(w, h, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+  picking_fbo->create_depth_buffer();
+  picking_fbo->create_shader("./src/glsl/picking_fbo.vert", "./src/glsl/picking_fbo.frag");
+  picking_fbo->bind();
+  picking_fbo->attach_depth_buffer();
+  picking_fbo->attach_current_texture();
+  picking_fbo->unbind();
+  m_fbos["picking"] = std::move(picking_fbo);
 }
 
 void SceneRenderer::render()
@@ -76,37 +88,45 @@ void SceneRenderer::render()
   ::setup_opengl();
   ::setup_imgui(gl_window);
   create_scene();
-  assert(m_fbo->is_complete());
+
+  for (const auto& [name, fbo] : m_fbos)
+  {
+    assert(fbo->is_complete());
+  }
+  const auto& main_fbo = m_fbos.at("main");
+  const auto& picking_fbo = m_fbos.at("picking");
   ScreenQuad screen_quad;
 
   while (!glfwWindowShouldClose(gl_window))
   {
     glfwPollEvents();
     handle_input();
-    // render to custom framebuffer
-    m_shader->activate();
-    m_fbo->bind();
-    glViewport(0, 0, m_window->width(), m_window->height());
+
+    picking_fbo->bind();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    Shader& picking_shader = picking_fbo->shader();
+    picking_shader.activate();
+    render_scene(picking_shader, /*assignIndices*/true);
+    picking_fbo->unbind();
+
+    // render to a custom framebuffer
+    m_main_shader->activate();
+    main_fbo->bind();
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     // render scene before gui to make sure that imgui window always will be on top of drawn entities
-    render_scene();
+    render_scene(*m_main_shader);
     render_gui();
-    m_fbo->unbind();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    main_fbo->unbind();
 
-    // color of the background
-    glViewport(0, 0, m_window->width(), m_window->height());
-    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-    // Clean the back buffer and assign the new color to it
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    m_fbo->shader().activate();
+    main_fbo->shader().activate();
     screen_quad.vao.bind();
     glDisable(GL_DEPTH_TEST);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_fbo->texture().id());
+    glBindTexture(GL_TEXTURE_2D, main_fbo->texture().id());
     screen_quad.render();
     screen_quad.vao.unbind();
 
@@ -117,15 +137,20 @@ void SceneRenderer::render()
   ImGui::DestroyContext();
 }
 
-void SceneRenderer::render_scene()
+void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
 {
-  for (const auto& obj : m_drawables)
+  shader.set_vec3("viewPos", m_camera->position());
+  shader.set_matrix4f("viewMatrix", m_camera->view_matrix());
+  shader.set_matrix4f("projectionMatrix", m_projection_mat);
+  for (int i = 0; i < (int)m_drawables.size(); i++)
   {
-    m_shader->set_vec3("viewPos", m_camera->position());
-    m_shader->set_matrix4f("modelMatrix", obj->model_matrix());
-    m_shader->set_matrix4f("viewMatrix", m_camera->view_matrix());
-    m_shader->set_matrix4f("projectionMatrix", m_projection_mat);
-    static_cast<IDrawable*>(&(*obj))->render(m_gpu_buffers.get(), m_shader.get());
+    const auto& obj = m_drawables[i];
+    shader.set_matrix4f("modelMatrix", obj->model_matrix());
+    if (assignIndices)
+    {
+      shader.set_uint("objectIndex", i + 1);
+    }
+    static_cast<IDrawable*>(&(*obj))->render(m_gpu_buffers.get(), &shader);
   }
 }
 
@@ -202,7 +227,7 @@ void SceneRenderer::handle_input()
 {
   ImGuiIO& io = ImGui::GetIO();
   m_camera->scale_speed(io.DeltaTime);
-  for (auto phandler : m_window->input_handlers())
+  for (const auto& phandler : m_window->input_handlers())
   {
     if (phandler->disabled())
       continue;
@@ -210,20 +235,39 @@ void SceneRenderer::handle_input()
     {
     case UserInputHandler::KEYBOARD:
     {
-      KeyboardHandler* kh = static_cast<KeyboardHandler*>(phandler);
-      if (kh->key_state(InputKey::W) == GLFW_PRESS || kh->key_state(InputKey::ARROW_UP) == GLFW_PRESS)
+      KeyboardHandler* kh = static_cast<KeyboardHandler*>(phandler.get());
+      if (kh->get_keystate(InputKey::W) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_UP) == KeyboardHandler::PRESSED)
+      {
         m_camera->move(Camera::Direction::FORWARD);
-      if (kh->key_state(InputKey::A) == GLFW_PRESS || kh->key_state(InputKey::ARROW_LEFT) == GLFW_PRESS)
+      }
+      if (kh->get_keystate(InputKey::A) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_LEFT) == KeyboardHandler::PRESSED)
+      {
         m_camera->move(Camera::Direction::LEFT);
-      if (kh->key_state(InputKey::S) == GLFW_PRESS || kh->key_state(InputKey::ARROW_DOWN) == GLFW_PRESS)
+      }
+      if (kh->get_keystate(InputKey::S) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_DOWN) == KeyboardHandler::PRESSED)
+      {
         m_camera->move(Camera::Direction::BACKWARD);
-      if (kh->key_state(InputKey::D) == GLFW_PRESS || kh->key_state(InputKey::ARROW_RIGHT) == GLFW_PRESS)
+      }
+      if (kh->get_keystate(InputKey::D) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_RIGHT) == KeyboardHandler::PRESSED)
+      {
         m_camera->move(Camera::Direction::RIGHT);
+      }
+      KeyboardHandler::KeyState shift_state = kh->get_keystate(InputKey::LEFT_SHIFT);
+      if (shift_state == KeyboardHandler::PRESSED)
+      {
+        m_camera->freeze();
+        glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      }
+      else if (shift_state == KeyboardHandler::RELEASED)
+      {
+        m_camera->unfreeze();
+        glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      }
     }
     break;
     case UserInputHandler::CURSOR_POSITION:
     {
-      CursorPositionHandler* ch = static_cast<CursorPositionHandler*>(phandler);
+      CursorPositionHandler* ch = static_cast<CursorPositionHandler*>(phandler.get());
       double x, y;
       ch->xy_offset(x, y);
       if (x != 0. || y != 0.)
@@ -232,14 +276,24 @@ void SceneRenderer::handle_input()
     break;
     case UserInputHandler::MOUSE_INPUT:
     {
-      MouseInputHandler* mh = static_cast<MouseInputHandler*>(phandler);
+      MouseInputHandler* mh = static_cast<MouseInputHandler*>(phandler.get());
       if (mh->is_left_button_clicked())
       {
         int x, y;
         x = mh->x();
         y = mh->y();
-        float z;
-        glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+        const auto& picking_fbo = m_fbos["picking"];
+        picking_fbo->bind();
+        glBindTexture(GL_TEXTURE_2D, picking_fbo->texture().id());
+        float id[4] = {};
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glReadPixels(x, y, 1, 1, GL_RGBA, GL_FLOAT, &id);
+        if (id[0] != 0)
+        {
+          std::cout << "Pixel " << x << ',' << y << " object id = " << id[0] << '\n';
+        }
+        glReadBuffer(0);
+        picking_fbo->unbind();
         mh->update_left_button_click_state();
       }
     }

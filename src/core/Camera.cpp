@@ -18,10 +18,13 @@ Camera::Camera(const glm::vec3& position, float speed, float sensivity)
   m_pitch = 0.f;
   m_up = glm::vec3(0.f, 1.f, 0.f);
   m_target = glm::vec3(0.f);
+  m_freezed = false;
 }
 
 void Camera::move(Direction direction) 
 {
+  if (freezed())
+    return;
   switch (direction)
   {
   case Direction::FORWARD: 
@@ -53,6 +56,8 @@ glm::mat4 Camera::view_matrix()
 
 void Camera::add_to_yaw_and_pitch(float x_offset, float y_offset) 
 {
+  if (freezed())
+    return;
   m_yaw += x_offset * m_sensivity;
   m_pitch += y_offset * m_sensivity;
   update_camera_vectors();

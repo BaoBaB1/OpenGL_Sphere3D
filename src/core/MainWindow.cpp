@@ -18,7 +18,7 @@ MainWindow::MainWindow(int width, int height, const char* title) :
     DEBUG("Failed to create GLFW window" << std::endl);
     glfwTerminate();
   }
-  glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  //glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(m_window, m_width / 2., m_height / 2.);
   m_input_handlers.emplace_back(new KeyboardHandler(this));
   m_input_handlers.emplace_back(new CursorPositionHandler(this));

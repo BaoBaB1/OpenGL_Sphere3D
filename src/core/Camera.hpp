@@ -25,7 +25,10 @@ public:
   const glm::vec3& target() const { return m_target; }
   const float sensivity() const { return m_sensivity; }
   const float speed() const { return m_base_speed; }
+  bool freezed() const { return m_freezed; }
   glm::mat4 view_matrix();
+  void freeze() { m_freezed = true; }
+  void unfreeze() { m_freezed = false; }
   void set_position(const glm::vec3& position) { m_position = position; }
   void set_sensivity(float sensivity) { m_sensivity = sensivity; }
   void set_speed(float speed) { m_base_speed = speed; }
@@ -40,6 +43,7 @@ private:
   float m_base_speed; // speed from ctor
   float m_actual_speed; // speed according to deltatime
   float m_sensivity; 
+  bool m_freezed;
   glm::vec3 m_up;      // vector
   glm::vec3 m_target;  // vector
   glm::vec3 m_position; // point

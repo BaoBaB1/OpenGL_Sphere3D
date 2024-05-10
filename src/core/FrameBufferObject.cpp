@@ -31,9 +31,9 @@ void FrameBufferObject::create_depth_buffer()
   glGenRenderbuffers(1, &m_depth_buffer_id);
 }
 
-void FrameBufferObject::create_texture(int w, int h)
+void FrameBufferObject::create_texture(int w, int h, GLint internalformat, GLint format, GLint type)
 {
-  m_texture = std::make_unique<Texture>(w, h);
+  m_texture = std::make_unique<Texture>(w, h, internalformat, format, type);
 }
 
 void FrameBufferObject::attach_depth_buffer()
