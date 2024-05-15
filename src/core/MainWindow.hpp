@@ -13,9 +13,7 @@ public:
   MainWindow(int width, int height, const char* title);
   ~MainWindow();
   GLFWwindow* gl_window() const { return m_window; }
-  std::vector<UserInputHandler*>& input_handlers() { return m_input_handlers; }
-  void remove(IObserver* observer);
-  void add(IObserver* observer);
+  std::vector<std::unique_ptr<UserInputHandler>>& input_handlers() { return m_input_handlers; }
   void notify(IObserver* observer, bool enable);
   void notify_all(bool enable);
   int width() const { return m_width; }
@@ -26,6 +24,5 @@ private:
   int m_width;
   int m_height;
   GLFWwindow* m_window;
-  std::vector<UserInputHandler*> m_input_handlers;
-  std::vector<IObserver*> m_observers;
+  std::vector<std::unique_ptr<UserInputHandler>> m_input_handlers;
 };

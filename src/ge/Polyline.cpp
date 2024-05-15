@@ -4,7 +4,6 @@ void Polyline::render(GPUBuffers* gpu_buffers, Shader* shader)
 {
   assert(gpu_buffers != nullptr && shader != nullptr);
   assert(m_mesh.vertices().size() > 0);
-  shader->set_bool("applyShading", false);
   RenderConfig cfg;
   cfg.use_indices = false;
   cfg.apply_shading = false;

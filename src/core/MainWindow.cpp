@@ -18,29 +18,14 @@ MainWindow::MainWindow(int width, int height, const char* title) :
     DEBUG("Failed to create GLFW window" << std::endl);
     glfwTerminate();
   }
-  //glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(m_window, m_width / 2., m_height / 2.);
-  m_input_handlers.emplace_back(new KeyboardHandler(this));
-  m_input_handlers.emplace_back(new CursorPositionHandler(this));
-  m_input_handlers.emplace_back(new MouseInputHandler(this));
-  m_observers.push_back(m_input_handlers[0]);
-  m_observers.push_back(m_input_handlers[1]);
-  m_observers.push_back(m_input_handlers[2]);
+  m_input_handlers.emplace_back(std::make_unique<KeyboardHandler>(this));
+  m_input_handlers.emplace_back(std::make_unique<CursorPositionHandler>(this));
+  m_input_handlers.emplace_back(std::make_unique<MouseInputHandler>(this));
   glfwMakeContextCurrent(m_window);
   gladLoadGL();
   glViewport(0, 0, m_width, m_height);
-}
-
-void MainWindow::remove(IObserver* observer)
-{
-  auto it = std::find(m_observers.begin(), m_observers.end(), observer);
-  if (it != m_observers.end())
-    delete *it;
-}
-
-void MainWindow::add(IObserver* observer)
-{
-  m_observers.push_back(observer);
 }
 
 void MainWindow::notify(IObserver* observer, bool enable)
@@ -50,15 +35,12 @@ void MainWindow::notify(IObserver* observer, bool enable)
 
 void MainWindow::notify_all(bool enable)
 {
-  for (auto pobs : m_observers)
-    pobs->notify(enable);
+  for (const auto& phandler : m_input_handlers)
+    phandler->notify(enable);
 }
 
 MainWindow::~MainWindow() 
 {
-  // handlers are observers themselves (added in constructor)
-  for (auto pobs : m_observers)
-    delete pobs;
   glfwDestroyWindow(m_window);
   glfwTerminate();
 }
