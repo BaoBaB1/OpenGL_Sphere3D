@@ -101,6 +101,7 @@ void SceneRenderer::render()
   {
     glfwPollEvents();
     handle_input();
+    glPolygonMode(GL_FRONT_AND_BACK, m_polygon_mode);
 
     picking_fbo->bind();
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -121,7 +122,9 @@ void SceneRenderer::render()
     render_scene(*m_main_shader);
     render_gui();
     main_fbo->unbind();
-
+    
+    // set GL_FILL mode because next we are rendering texture
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     main_fbo->shader().activate();
     screen_quad.vao.bind();
     glDisable(GL_DEPTH_TEST);
@@ -330,12 +333,11 @@ void SceneRenderer::render_gui()
     {
       if (ImGui::Checkbox("Don't fill polygons", &g_bools[1]))
       {
-        GLint polygonMode;
-        glGetIntegerv(GL_POLYGON_MODE, &polygonMode);
-        if (polygonMode == GL_LINE)
-          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glGetIntegerv(GL_POLYGON_MODE, &m_polygon_mode);
+        if (m_polygon_mode == GL_LINE)
+          m_polygon_mode = GL_FILL;
         else
-          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+          m_polygon_mode = GL_LINE;
       }
     }
     if (ImGui::CollapsingHeader("Objects"))

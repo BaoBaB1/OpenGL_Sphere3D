@@ -37,4 +37,5 @@ private:
   std::map<std::string, std::unique_ptr<FrameBufferObject>> m_fbos;
   std::vector<std::unique_ptr<Object3D>> m_drawables;
   glm::mat4 m_projection_mat;
+  GLint m_polygon_mode = GL_FILL;
 };
