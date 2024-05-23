@@ -23,33 +23,24 @@ bool FrameBufferObject::is_complete() const
   return complete;
 }
 
-void FrameBufferObject::create_depth_buffer()
+void FrameBufferObject::attach_renderbuffer(GLenum internalformat, GLenum attachment)
 {
-  // depth buffer
-  if (m_depth_buffer_id)
-    glDeleteRenderbuffers(1, &m_depth_buffer_id);
-  glGenRenderbuffers(1, &m_depth_buffer_id);
-}
-
-void FrameBufferObject::create_texture(int w, int h, GLint internalformat, GLint format, GLint type)
-{
-  m_texture = std::make_unique<Texture>(w, h, internalformat, format, type);
-}
-
-void FrameBufferObject::attach_depth_buffer()
-{
-  if (m_depth_buffer_id)
+  if (m_depth_buffer_id == 0)
   {
+    glGenRenderbuffers(1, &m_depth_buffer_id);
     glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer_id);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_width, m_height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_buffer_id);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glRenderbufferStorage(GL_RENDERBUFFER, internalformat, m_width, m_height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, m_depth_buffer_id);
   }
 }
 
-void FrameBufferObject::attach_current_texture()
+void FrameBufferObject::attach_texture(int w, int h, GLint internalformat, GLint format, GLint type)
 {
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture->id(), 0);
+  if (!m_texture)
+  {
+    m_texture = std::make_unique<Texture>(w, h, internalformat, format, type);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture->id(), 0);
+  }
 }
 
 FrameBufferObject::~FrameBufferObject()

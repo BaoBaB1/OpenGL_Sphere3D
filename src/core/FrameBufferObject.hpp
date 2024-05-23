@@ -12,10 +12,8 @@ public:
   ~FrameBufferObject();
   template<typename... Args>
   void create_shader(Args&&... args);
-  void create_texture(int w, int h, GLint internalformat, GLint format, GLint type);
-  void create_depth_buffer();
-  void attach_depth_buffer();
-  void attach_current_texture();
+  void attach_renderbuffer(GLenum internalformat, GLenum attachment);
+  void attach_texture(int w, int h, GLint internalformat, GLint format, GLint type);
   void bind() const;
   void unbind() const;
   bool is_complete() const;

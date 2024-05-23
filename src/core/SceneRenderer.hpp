@@ -32,6 +32,7 @@ private:
 private:
   std::unique_ptr<MainWindow> m_window;
   std::unique_ptr<Shader> m_main_shader;
+  std::unique_ptr<Shader> m_outlining_shader;
   std::unique_ptr<Camera> m_camera;
   std::unique_ptr<GPUBuffers> m_gpu_buffers;
   std::map<std::string, std::unique_ptr<FrameBufferObject>> m_fbos;

@@ -14,6 +14,7 @@ public:
     ARROW_LEFT = GLFW_KEY_LEFT,
     ARROW_RIGHT = GLFW_KEY_RIGHT,
     LEFT_SHIFT = GLFW_KEY_LEFT_SHIFT,
+    ESC = GLFW_KEY_ESCAPE,
     UNKNOWN = 0xFFFFFFFF
   };
 
@@ -24,7 +25,10 @@ public:
     NO_STATE
   };
 
-  static constexpr InputKey registered_keys[] = {W, A, S, D, ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, LEFT_SHIFT};
+  static constexpr InputKey registered_keys[] = {
+    W, A, S, D, ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, LEFT_SHIFT,
+    ESC
+  };
 
   KeyboardHandler(MainWindow* window);
   KeyboardHandler::KeyState get_keystate(KeyboardHandler::InputKey key);
