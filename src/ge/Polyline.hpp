@@ -11,6 +11,6 @@ public:
   Polyline() = default;
   std::string name() const override { return "Polyline"; }
   bool has_surface() const override { return false; }
-  void render(GPUBuffers*, Shader*) override;
+  void render(GPUBuffers*) override;
   void add(const Vertex& point);
 };

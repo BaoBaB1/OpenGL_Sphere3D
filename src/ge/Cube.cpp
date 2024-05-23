@@ -34,8 +34,7 @@ Cube::Cube()
   m_mesh.append_face(Face{ 21, 18, 22 });
   // call it here to avoid vertex duplication in Model::apply_shading(),
   // but Model::apply_shading() also works fine
-  calc_normals(m_mesh, IShaderable::ShadingMode::FLAT_SHADING);
-  m_cached_meshes[int(IShaderable::ShadingMode::FLAT_SHADING)] = m_mesh;
+  calc_normals(m_mesh, Object3D::ShadingMode::FLAT_SHADING);
 }
 
 void Cube::set_texture(const std::string& filename) {

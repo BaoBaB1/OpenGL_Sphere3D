@@ -1,14 +1,12 @@
 #include "Polyline.hpp"
 
-void Polyline::render(GPUBuffers* gpu_buffers, Shader* shader) 
+void Polyline::render(GPUBuffers* gpu_buffers) 
 {
-  assert(gpu_buffers != nullptr && shader != nullptr);
   assert(m_mesh.vertices().size() > 0);
   RenderConfig cfg;
   cfg.use_indices = false;
-  cfg.apply_shading = false;
   cfg.mode = GL_LINE_STRIP;
-  Object3D::render(gpu_buffers, shader, &cfg);
+  Object3D::render(gpu_buffers, cfg);
 }
 
 void Polyline::add(const Vertex& point) 

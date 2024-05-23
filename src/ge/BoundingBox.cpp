@@ -16,13 +16,18 @@ bool BoundingBox::is_empty() const
   return m_min == glm::vec3(g_fmin, g_fmin, g_fmin) && m_max == glm::vec3(g_fmax, g_fmax, g_fmax);
 }
 
-void BoundingBox::render(GPUBuffers* buffers, Shader* shader)
+void BoundingBox::render(GPUBuffers* buffers)
 {
   // BoundingBox::render must be called only inside Object3D::render, 
   // thus all buffers must be already bound
   VertexArrayObject* vao = buffers->vao;
   VertexBufferObject* vbo = buffers->vbo;
-  shader->set_bool("applyShading", false);
+
+  GLint current_shader_id = 0;
+  glGetIntegerv(GL_CURRENT_PROGRAM, &current_shader_id);
+  assert(current_shader_id != 0);
+  glUniform1i(glGetUniformLocation(current_shader_id, "applyShading"), false);
+
   std::array<glm::vec3, 8> bbox_points = points();
   std::array<Vertex, 8> converted;
   for (size_t i = 0; i < 8; i++)
