@@ -18,10 +18,6 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
   {
     calculate_bbox();
   }
-  if (is_rotating())
-  {
-    rotate(m_rotation_angle, m_rotation_axis);
-  }
   VertexArrayObject* vao = gpu_buffers->vao;
   VertexBufferObject* vbo = gpu_buffers->vbo;
   gpu_buffers->bind_all();

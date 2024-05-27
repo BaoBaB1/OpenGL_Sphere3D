@@ -149,6 +149,10 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     shader.set_matrix4f("modelMatrix", pobj->model_matrix());
     shader.set_bool("applyTexture", pobj->m_texture.id() != 0 && !pobj->m_texture.disabled());
     shader.set_bool("applyShading", pobj->m_shading_mode != Object3D::ShadingMode::NO_SHADING && !pobj->is_light_source());
+    if (pobj->is_rotating())
+    {
+      pobj->rotate(pobj->m_rotation_angle, pobj->m_rotation_axis);
+    }
     if (pobj->is_light_source())
     {
       // center in world space
