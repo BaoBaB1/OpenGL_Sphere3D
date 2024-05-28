@@ -11,34 +11,20 @@ CursorPositionHandler::CursorPositionHandler(MainWindow* window) : UserInputHand
   glfwSetCursorPosCallback(m_window->gl_window(), callback);
   glfwGetCursorPos(m_window->gl_window(), &m_cur_pos[0], &m_cur_pos[1]);
   m_prev_pos[0] = m_prev_pos[1] = 0;
-  m_changed = m_renew_callback = false;
-}
-
-void CursorPositionHandler::disable()
-{
-  UserInputHandler::disable();
-  m_renew_callback = true;
+  m_changed = false;
 }
 
 void CursorPositionHandler::callback(double xpos, double ypos)
 {
   if (!m_disabled)
   {
-    if (m_renew_callback)
-    {
-      // m_cur_pos will store x,y values BEFORE handler has been disabled, 
-      // so to prevent camera 'jumps' after it has been enabled again, set cursor position to old values
-      glfwSetCursorPos(m_window->gl_window(), m_cur_pos[0], m_cur_pos[1]);
-      m_renew_callback = false;
-    }
-    else
-    {
-      m_prev_pos[0] = m_cur_pos[0];
-      m_prev_pos[1] = m_cur_pos[1];
-      m_cur_pos[0] = xpos;
-      m_cur_pos[1] = ypos;
-      m_changed = true;
-    }
+    double x, y;
+    glfwGetCursorPos(m_window->gl_window(), &x, &y);
+    m_prev_pos[0] = m_cur_pos[0];
+    m_prev_pos[1] = m_cur_pos[1];
+    m_cur_pos[0] = xpos;
+    m_cur_pos[1] = ypos;
+    m_changed = true;
   }
 }
 

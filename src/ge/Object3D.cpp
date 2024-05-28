@@ -246,6 +246,7 @@ void Object3D::apply_shading(Object3D::ShadingMode mode)
           std::vector<GLuint> indices(3);
           std::vector<Vertex>& vertices = m_mesh.vertices(), unique_vertices;
           std::vector<Face>& faces = m_mesh.faces();
+          assert(faces.size() > 0);
           for (auto& face : faces)
           {
             indices.resize(face.size);

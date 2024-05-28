@@ -97,6 +97,7 @@ void SceneRenderer::render()
   while (!glfwWindowShouldClose(gl_window))
   {
     glfwPollEvents();
+    new_frame_update();
     handle_input();
     glPolygonMode(GL_FRONT_AND_BACK, m_polygon_mode);
 
@@ -166,7 +167,8 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     // !assignIndices is a temp workaround to avoid crash when selecting same object twice,
     // because render outlining color to the picking FBO will overwrite assigned object index before
     // TODO: fix this
-    if (pobj->is_selected() && !assignIndices)
+    // TODO: outlining for objects without surface (e.g. polylines)
+    if (pobj->is_selected() && pobj->has_surface() && !assignIndices)
     {
       // first pass, fill stencil buffer
       glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -276,10 +278,22 @@ void SceneRenderer::create_scene()
   m_drawables.push_back(std::move(bc2));
 }
 
-void SceneRenderer::handle_input()
+void SceneRenderer::new_frame_update()
 {
   ImGuiIO& io = ImGui::GetIO();
   m_camera->scale_speed(io.DeltaTime);
+
+  double x, y;
+  glfwGetCursorPos(m_window->gl_window(), &x, &y);
+  // update virtual cursor pos to avoid camera jumps after cursor goes out of window or window regains focus,
+  // because once cursor goes out of glfw window cursor callback is no longer triggered
+  auto& h = m_window->input_handlers()[1];
+  assert(h->type() == UserInputHandler::CURSOR_POSITION);
+  static_cast<CursorPositionHandler*>(h.get())->update_current_pos(x, y);
+}
+
+void SceneRenderer::handle_input()
+{
   for (const auto& phandler : m_window->input_handlers())
   {
     if (phandler->disabled())

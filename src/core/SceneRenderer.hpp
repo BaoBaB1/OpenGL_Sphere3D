@@ -29,6 +29,7 @@ private:
   void render_scene(Shader& shader, bool assignIndices = false);
   void create_scene();
   void render_gui();
+  void new_frame_update();
 private:
   std::unique_ptr<MainWindow> m_window;
   std::unique_ptr<Shader> m_main_shader;
