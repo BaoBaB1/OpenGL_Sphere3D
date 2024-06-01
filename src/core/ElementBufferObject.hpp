@@ -1,15 +1,15 @@
 #pragma once
 
 #include <glad/glad.h>
+#include "OpenGLObject.hpp"
 
-class ElementBufferObject {
+class ElementBufferObject : public OpenGLObject 
+{
 public:
+  OnlyMovable(ElementBufferObject)
   ElementBufferObject();
   ~ElementBufferObject();
   void set_data(void* indices, size_t size_in_bytes);
-  void bind();
-  void unbind();
-  GLuint id() const { return m_id; }
-private:
-  GLuint m_id;
+  void bind() const override;
+  void unbind() const override;
 };

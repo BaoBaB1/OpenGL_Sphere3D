@@ -29,29 +29,19 @@
 #include "./ge/Polyline.hpp"
 #include "./ge/Pyramid.hpp"
 #include "./ge/BezierCurve.hpp"
+#include "./ge/Skybox.hpp"
 
 static bool is_gui_opened();
 static void setup_opengl();
 static void setup_imgui(GLFWwindow*);
 static std::string shading_mode_to_str(Object3D::ShadingMode mode);
 
-static float quadVertices[] =
-{ // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-  // positions   // texCoords
-  -1.0f,  1.0f,  0.0f, 1.0f,
-  -1.0f, -1.0f,  0.0f, 0.0f,
-   1.0f, -1.0f,  1.0f, 0.0f,
-
-  -1.0f,  1.0f,  0.0f, 1.0f,
-   1.0f, -1.0f,  1.0f, 0.0f,
-   1.0f,  1.0f,  1.0f, 1.0f
-};
-
 SceneRenderer::SceneRenderer()
 {
   m_window = std::make_unique<MainWindow>(800, 800, "OpenGLWindow");
   m_main_shader = std::make_unique<Shader>("./src/glsl/shader.vert", "./src/glsl/shader.frag");
   m_outlining_shader = std::make_unique<Shader>("./src/glsl/outlining.vert", "./src/glsl/outlining.frag");
+  m_skybox_shader = std::make_unique<Shader>("./src/glsl/skybox.vert", "./src/glsl/skybox.frag");
   m_gpu_buffers = std::make_unique<GPUBuffers>();
   m_camera = std::make_unique<Camera>();
   m_camera->set_position(glm::vec3(-4.f, 2.f, 3.f));
@@ -88,11 +78,25 @@ void SceneRenderer::render()
 
   for (const auto& [name, fbo] : m_fbos)
   {
+    fbo->bind();
     assert(fbo->is_complete());
+    fbo->unbind();
   }
   const auto& main_fbo = m_fbos.at("main");
   const auto& picking_fbo = m_fbos.at("picking");
-  ScreenQuad screen_quad;
+  ScreenQuad screen_quad(main_fbo->texture().id());
+
+  const std::string skybox_folder = ".\\.\\src\\textures\\skybox\\";
+  std::array<std::string, 6> skybox_faces =
+  { 
+    skybox_folder + "right.jpg",
+    skybox_folder + "left.jpg",
+    skybox_folder + "top.jpg",
+    skybox_folder + "bottom.jpg",
+    skybox_folder + "front.jpg",
+    skybox_folder + "back.jpg" 
+  };
+  Skybox skybox(std::move(skybox_faces));
 
   while (!glfwWindowShouldClose(gl_window))
   {
@@ -106,30 +110,34 @@ void SceneRenderer::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     Shader& picking_shader = picking_fbo->shader();
-    picking_shader.activate();
+    picking_shader.bind();
     render_scene(picking_shader, /*assignIndices*/true);
     picking_fbo->unbind();
 
     // render to a custom framebuffer
-    m_main_shader->activate();
     main_fbo->bind();
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+    m_main_shader->bind();
     // render scene before gui to make sure that imgui window always will be on top of drawn entities
     render_scene(*m_main_shader);
+    // render skybox
+    glDepthFunc(GL_LEQUAL);
+    m_skybox_shader->bind();
+    m_skybox_shader->set_matrix4f("viewMatrix", m_camera->view_matrix());
+    m_skybox_shader->set_matrix4f("projectionMatrix", m_projection_mat);
+    skybox.render(m_gpu_buffers.get());
+    m_skybox_shader->unbind();
+    glDepthFunc(GL_LESS);
     render_gui();
     main_fbo->unbind();
 
     // set GL_FILL mode because next we are rendering texture
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    main_fbo->shader().activate();
-    screen_quad.vao.bind();
     glDisable(GL_DEPTH_TEST);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, main_fbo->texture().id());
-    screen_quad.render();
-    screen_quad.vao.unbind();
+    main_fbo->shader().bind();
+    screen_quad.render(m_gpu_buffers.get());
 
     glfwSwapBuffers(gl_window);
   }
@@ -148,7 +156,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     Object3D* pobj = m_drawables[i].get();
     IDrawable* pdrawable = static_cast<IDrawable*>(pobj);
     shader.set_matrix4f("modelMatrix", pobj->model_matrix());
-    shader.set_bool("applyTexture", pobj->m_texture.id() != 0 && !pobj->m_texture.disabled());
+    shader.set_bool("applyTexture", pobj->m_texture.has_value() && !pobj->m_texture->disabled());
     shader.set_bool("applyShading", pobj->m_shading_mode != Object3D::ShadingMode::NO_SHADING && !pobj->is_light_source());
     if (pobj->is_rotating())
     {
@@ -188,7 +196,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
         pobj->apply_shading(Object3D::ShadingMode::SMOOTH_SHADING);
       pobj->visible_normals(false);
 
-      m_outlining_shader->activate();
+      m_outlining_shader->bind();
       m_outlining_shader->set_matrix4f("viewMatrix", m_camera->view_matrix());
       m_outlining_shader->set_matrix4f("projectionMatrix", m_projection_mat);
       m_outlining_shader->set_matrix4f("modelMatrix", pobj->model_matrix());
@@ -198,7 +206,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
       glStencilMask(0xFF);
 
       // activate previous shader and set variables
-      shader.activate();
+      shader.bind();
       pobj->apply_shading(shading_mode);
       pobj->visible_normals(visible_normals);
     }
@@ -536,20 +544,20 @@ void SceneRenderer::render_gui()
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-SceneRenderer::ScreenQuad::ScreenQuad()
+void ScreenQuad::render(GPUBuffers* gpu_buffers)
 {
-  vao.bind();
-  vbo.bind();
-  vbo.set_data(quadVertices, sizeof(quadVertices));
-  vao.link_attrib(0, 2, GL_FLOAT, sizeof(float) * 4, nullptr);
-  vao.link_attrib(1, 2, GL_FLOAT, sizeof(float) * 4, (void*)(sizeof(float) * 2));
-  vbo.unbind();
-  vao.unbind();
-};
-
-void SceneRenderer::ScreenQuad::render()
-{
+  auto vao = gpu_buffers->vao;
+  auto vbo = gpu_buffers->vbo;
+  vao->bind();
+  vbo->bind();
+  vbo->set_data(quadVertices, sizeof(quadVertices));
+  vao->link_attrib(0, 2, GL_FLOAT, sizeof(float) * 4, nullptr);
+  vao->link_attrib(1, 2, GL_FLOAT, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, m_tex_id);
   glDrawArrays(GL_TRIANGLES, 0, 6);
+  vbo->unbind();
+  vao->unbind();
 }
 
 static void setup_opengl()

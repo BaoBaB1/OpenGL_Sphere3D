@@ -3,9 +3,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_map>
+#include <optional>
 #include "./core/Shader.hpp"
 #include "./core/GPUBuffers.hpp"
-#include "./core/Texture.hpp"
+#include "./core/Texture2D.hpp"
 #include "./ge/IDrawable.hpp"
 #include "./ge/Mesh.hpp"
 #include "./ge/BoundingBox.hpp"
@@ -50,8 +51,8 @@ public:
   const glm::vec4& color() const { return m_color; }
   Mesh& mesh() { return m_mesh; }
   const Mesh& mesh() const { return m_mesh; }
-  Texture& texture() { return m_texture; }
-  const Texture& texture() const { return m_texture; }
+  std::optional<Texture2D>& texture() { return m_texture; }
+  const std::optional<Texture2D>& texture() const { return m_texture; }
   BoundingBox& bbox() { return m_bbox; }
   const BoundingBox& bbox() const { return m_bbox; }
   friend class SceneRenderer;
@@ -113,7 +114,7 @@ protected:
   bool get_flag(Flag flag) const { return m_flags & flag; }
 protected:
   Mesh m_mesh;
-  Texture m_texture;
+  std::optional<Texture2D> m_texture;
   BoundingBox m_bbox;
   glm::mat4 m_model_mat;
   glm::vec4 m_color;

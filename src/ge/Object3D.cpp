@@ -21,13 +21,15 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
   VertexArrayObject* vao = gpu_buffers->vao;
   VertexBufferObject* vbo = gpu_buffers->vbo;
   gpu_buffers->bind_all();
-  std::vector<Vertex>& vertices = m_mesh.vertices();
+  const std::vector<Vertex>& vertices = m_mesh.vertices();
+  const GLuint tex_id = m_texture.has_value() ? m_texture->id() : 0;
   vbo->set_data(vertices.data(), sizeof(Vertex) * vertices.size());
   vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                         // position
   vao->link_attrib(1, 3, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 3));    // normal
   vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6));    // color
-  vao->link_attrib(3, 2, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 10));   // texture coords
-  glBindTexture(GL_TEXTURE_2D, m_texture.id());
+  vao->link_attrib(3, 2, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 10));   // texture 
+  
+  glBindTexture(GL_TEXTURE_2D, tex_id);
   if (cfg.use_indices)
   {
     std::vector<GLuint> indices = m_mesh.faces_as_indices();
@@ -40,6 +42,7 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
     glDrawArrays(cfg.mode, 0, (GLsizei)vertices.size());
   }
   glBindTexture(GL_TEXTURE_2D, 0);
+
   if (is_normals_visible())
   {
     // normals without shading
@@ -87,7 +90,7 @@ void Object3D::translate(const glm::vec3& translation)
 
 void Object3D::set_texture(const std::string& filename)
 {
-  m_texture.load(filename);
+  m_texture = Texture2D(filename);
   for (const auto& face : m_mesh.faces())
   {
     assert(face.size == 3);

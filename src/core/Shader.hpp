@@ -4,10 +4,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "OpenGLObject.hpp"
 
-class Shader
+class Shader : public OpenGLObject
 {
 public:
+  OnlyMovable(Shader)
   Shader(const char* vertex_file, const char* fragment_file);
   ~Shader();
   void set_matrix4f(const char* uniform_name, const glm::mat4& value);
@@ -15,8 +17,6 @@ public:
   void set_bool(const char* uniform_name, bool value);
   void set_uint(const char* uniform_name, unsigned int value);
   void set_float(const char* uniform_name, float value);
-  void activate();
-  GLuint id() const { return m_id; }
-private:
-  GLuint m_id;
+  void bind() const override;
+  void unbind() const override;
 };

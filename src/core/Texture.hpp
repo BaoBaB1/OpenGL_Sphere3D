@@ -2,29 +2,32 @@
 
 #include <glad/glad.h>
 #include <string>
-#include <stdexcept>
+#include <memory>
 #include <stb_image.h>
+#include "OpenGLObject.hpp"
 
-class Texture {
+struct StbDeleter
+{
+  void operator()(unsigned char* data) { free(data); }
+};
+
+class Texture : public OpenGLObject
+{
 public:
-  Texture();
-  Texture(int w, int h, GLint internalformat, GLint format, GLint type);
-  Texture(const std::string&) noexcept(false);
+  OnlyMovable(Texture)
   ~Texture();
-  void bind();
-  void unbind();
-  void load(const std::string&);
+  std::unique_ptr<unsigned char, StbDeleter> load(const std::string& filename);
   void disable() { m_disabled = true; }
   void enable() { m_disabled = false; }
   bool disabled() const { return m_disabled; }
   int width() const { return m_width; }
   int height() const { return m_height; }
   int nchannels() const { return m_nchannels; }
-  GLuint id() const { return m_id; }
-private:
+protected:
+  Texture();
+protected:
   int m_width = 0;
   int m_height = 0;
   int m_nchannels = 0;
   bool m_disabled = true;
-  GLuint m_id = 0;
 };

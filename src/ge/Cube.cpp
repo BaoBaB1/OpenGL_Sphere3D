@@ -38,7 +38,7 @@ Cube::Cube()
 }
 
 void Cube::set_texture(const std::string& filename) {
-  m_texture.load(filename);
+  m_texture = Texture2D(filename);
   int cnt = 0;
   for (const auto& face : m_mesh.faces()) {
     assert(face.size == 3);
