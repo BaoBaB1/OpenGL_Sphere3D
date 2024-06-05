@@ -18,8 +18,8 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
   {
     calculate_bbox();
   }
-  VertexArrayObject* vao = gpu_buffers->vao;
-  VertexBufferObject* vbo = gpu_buffers->vbo;
+  auto& vao = gpu_buffers->vao;
+  auto& vbo = gpu_buffers->vbo;
   gpu_buffers->bind_all();
   const std::vector<Vertex>& vertices = m_mesh.vertices();
   const GLuint tex_id = m_texture.has_value() ? m_texture->id() : 0;
@@ -33,7 +33,7 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
   if (cfg.use_indices)
   {
     std::vector<GLuint> indices = m_mesh.faces_as_indices();
-    ElementBufferObject* ebo = gpu_buffers->ebo;
+    auto& ebo = gpu_buffers->ebo;
     ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
     glDrawElements(cfg.mode, (GLsizei)(indices.size()), GL_UNSIGNED_INT, nullptr);
   }

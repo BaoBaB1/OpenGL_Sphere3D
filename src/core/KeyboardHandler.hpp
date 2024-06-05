@@ -2,9 +2,11 @@
 
 #include "UserInputHandler.hpp"
 
-class KeyboardHandler : public UserInputHandler {
+class KeyboardHandler : public UserInputHandler 
+{
 public:
-  enum InputKey {
+  enum InputKey 
+  {
     W = GLFW_KEY_W,
     A = GLFW_KEY_A,
     S = GLFW_KEY_S,
@@ -31,7 +33,8 @@ public:
   };
 
   KeyboardHandler(MainWindow* window);
-  KeyboardHandler::KeyState get_keystate(KeyboardHandler::InputKey key);
+  KeyboardHandler::KeyState get_keystate(KeyboardHandler::InputKey key) const;
+  void reset_state(InputKey key);
 private:
   void key_callback(int key, int scancode, int action, int mods);
   // key, state

@@ -13,12 +13,10 @@ public:
     FORWARD = 1,
     BACKWARD,
     LEFT,
-    RIGHT,
+    RIGHT
   };
 public:
   Camera();
-  Camera(const glm::vec3& initial_position, float speed, float sensivity);
-
   glm::vec3 position() { return m_position; }
   glm::vec3 target() { return m_target; }
   const glm::vec3& position() const { return m_position; }

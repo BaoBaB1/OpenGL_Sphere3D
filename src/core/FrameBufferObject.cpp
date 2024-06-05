@@ -33,11 +33,13 @@ void FrameBufferObject::attach_renderbuffer(GLenum internalformat, GLenum attach
 
 void FrameBufferObject::attach_texture(int w, int h, GLint internalformat, GLint format, GLint type)
 {
-  if (!m_texture)
-  {
-    m_texture = std::make_unique<Texture2D>(w, h, internalformat, format, type);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture->id(), 0);
-  }
+  m_texture = Texture2D(w, h, internalformat, format, type);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture->id(), 0);
+}
+
+void FrameBufferObject::attach_texture(Texture2D&& tex)
+{
+  m_texture = std::move(tex);
 }
 
 FrameBufferObject::~FrameBufferObject()

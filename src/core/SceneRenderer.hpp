@@ -6,14 +6,12 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "FrameBufferObject.hpp"
-#include "KeyboardHandler.hpp"
 #include "GPUBuffers.hpp"
+#include "MainWindow.hpp"
 #include "./ge/Object3D.hpp"
 
-class MainWindow;
-
-class SceneRenderer {
-  using InputKey = KeyboardHandler::InputKey;
+class SceneRenderer 
+{
 public:
   SceneRenderer();
   void render();
@@ -24,14 +22,17 @@ private:
   void render_gui();
   void new_frame_update();
 private:
-  std::unique_ptr<MainWindow> m_window;
-  std::unique_ptr<Shader> m_main_shader;
-  std::unique_ptr<Shader> m_outlining_shader;
-  std::unique_ptr<Shader> m_skybox_shader;
-  std::unique_ptr<Camera> m_camera;
-  std::unique_ptr<GPUBuffers> m_gpu_buffers;
-  std::map<std::string, std::unique_ptr<FrameBufferObject>> m_fbos;
   std::vector<std::unique_ptr<Object3D>> m_drawables;
+  MainWindow m_window;
+  // make sure that OpenGL objects are created after glad/glfw setup in MainWindow
+  GPUBuffers m_gpu_buffers;
+  Shader m_main_shader;
+  Shader m_outlining_shader;
+  Shader m_skybox_shader;
+  Shader m_fbo_default_shader;
+  Shader m_picking_shader;
+  Camera m_camera;
+  std::map<std::string, FrameBufferObject> m_fbos;
   glm::mat4 m_projection_mat;
   GLint m_polygon_mode = GL_FILL;
 };

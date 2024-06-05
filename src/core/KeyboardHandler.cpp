@@ -33,19 +33,16 @@ void KeyboardHandler::key_callback(int key, int scancode, int action, int mods)
         m_keystate[ckey] = KeyState::PRESSED;
         break;
       }
-      break;
     }
   }
 }
 
-KeyboardHandler::KeyState KeyboardHandler::get_keystate(KeyboardHandler::InputKey key)
+KeyboardHandler::KeyState KeyboardHandler::get_keystate(InputKey key) const
 {
-  KeyState last_state = m_keystate[key];
-  if (last_state == KeyState::RELEASED)
-  {
-    // to prevent endless release state handling in input handler,
-    // but can't use in sequential calls. bullshit design ? rework later
-    m_keystate[key] = KeyState::NO_STATE;
-  }
-  return last_state;
+  return m_keystate.at(key);
+}
+
+void KeyboardHandler::reset_state(InputKey key)
+{
+  m_keystate[key] = NO_STATE;
 }

@@ -4,16 +4,11 @@
 #include "Camera.hpp"
 #include "macro.hpp"
 
-Camera::Camera() : Camera(glm::vec3(), 5.f, 0.2f) 
+Camera::Camera()
 {
-
-}
-
-Camera::Camera(const glm::vec3& position, float speed, float sensivity) 
-{
-  m_position = position;
-  m_actual_speed = m_base_speed = speed;
-  m_sensivity = sensivity;
+  m_position = glm::vec3(0.f);
+  m_actual_speed = m_base_speed = 5.f;
+  m_sensivity = 0.2f;
   m_yaw = -90.f;
   m_pitch = 0.f;
   m_up = glm::vec3(0.f, 1.f, 0.f);

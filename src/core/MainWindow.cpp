@@ -20,9 +20,9 @@ MainWindow::MainWindow(int width, int height, const char* title) :
   }
   glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPos(m_window, m_width / 2., m_height / 2.);
-  m_input_handlers.emplace_back(std::make_unique<KeyboardHandler>(this));
-  m_input_handlers.emplace_back(std::make_unique<CursorPositionHandler>(this));
-  m_input_handlers.emplace_back(std::make_unique<MouseInputHandler>(this));
+  m_input_handlers.push_back(std::make_unique<KeyboardHandler>(this));
+  m_input_handlers.push_back(std::make_unique<CursorPositionHandler>(this));
+  m_input_handlers.push_back(std::make_unique<MouseInputHandler>(this));
   glfwMakeContextCurrent(m_window);
   gladLoadGL();
   glViewport(0, 0, m_width, m_height);

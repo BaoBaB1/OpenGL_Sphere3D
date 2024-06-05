@@ -20,8 +20,8 @@ void BoundingBox::render(GPUBuffers* buffers)
 {
   // BoundingBox::render must be called only inside Object3D::render, 
   // thus all buffers must be already bound
-  VertexArrayObject* vao = buffers->vao;
-  VertexBufferObject* vbo = buffers->vbo;
+  auto& vao = buffers->vao;
+  auto& vbo = buffers->vbo;
 
   GLint current_shader_id = 0;
   glGetIntegerv(GL_CURRENT_PROGRAM, &current_shader_id);
@@ -36,7 +36,7 @@ void BoundingBox::render(GPUBuffers* buffers)
     converted[i].color = glm::vec4(0.f, 1.f, 0.f, 1.f);
   }
   auto indices = lines_indices();
-  ElementBufferObject* ebo = buffers->ebo;
+  auto& ebo = buffers->ebo;
   vbo->set_data(converted.data(), sizeof(Vertex) * 8);
   vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
   vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color

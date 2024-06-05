@@ -10,7 +10,7 @@
 class MainWindow
 {
 public:
-  MainWindow(int width, int height, const char* title);
+  MainWindow(int width = 800, int height = 800, const char* title = "MainWindow");
   ~MainWindow();
   GLFWwindow* gl_window() const { return m_window; }
   std::vector<std::unique_ptr<UserInputHandler>>& input_handlers() { return m_input_handlers; }

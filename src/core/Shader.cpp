@@ -24,7 +24,16 @@ static bool read_shader_file_content(const char* const file, std::string& conten
 
 Shader::Shader(const char* vertex_file, const char* fragment_file) 
 {
-  std::string vertex_shader_source, fragment_shader_source; 
+  load(vertex_file, fragment_file);
+}
+
+void Shader::load(const char* vertex_file, const char* fragment_file)
+{
+  if (m_id != 0)
+  {
+    glDeleteProgram(m_id);
+  }
+  std::string vertex_shader_source, fragment_shader_source;
   if (!read_shader_file_content(vertex_file, vertex_shader_source))
     throw std::runtime_error("Error reading vertex shader file");
   if (!read_shader_file_content(fragment_file, fragment_shader_source))

@@ -42,13 +42,12 @@ class OpenGLObject
 {
 public:
   OnlyMovable(OpenGLObject)
-
+  OpenGLObject() = default;
+  virtual ~OpenGLObject() = default;
   virtual void bind() const = 0;
   virtual void unbind() const = 0;
-  virtual ~OpenGLObject() = default;
   GLuint id() const { return m_id; }
 protected:
-  OpenGLObject() = default;
   GLuint* id_ref() { return &m_id.id; }
   OpenGLIdWrapper<GLuint> m_id;
 };

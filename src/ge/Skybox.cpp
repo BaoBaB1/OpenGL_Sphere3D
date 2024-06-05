@@ -2,8 +2,8 @@
 
 void Skybox::render(GPUBuffers* gpu_buffers)
 {
-  auto vao = gpu_buffers->vao;
-  auto vbo = gpu_buffers->vbo;
+  auto& vao = gpu_buffers->vao;
+  auto& vbo = gpu_buffers->vbo;
   vao->bind();
   vbo->bind();
   m_cubemap.bind();
