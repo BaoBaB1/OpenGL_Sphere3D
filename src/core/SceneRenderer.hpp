@@ -8,24 +8,31 @@
 #include "FrameBufferObject.hpp"
 #include "GPUBuffers.hpp"
 #include "MainWindow.hpp"
+#include "./utils/Singleton.hpp"
 #include "./ge/Object3D.hpp"
 
-class SceneRenderer 
+class MouseInputHandler;
+class CursorPositionHandler;
+
+class SceneRenderer
 {
 public:
-  SceneRenderer();
+  static SceneRenderer& instance() { return Singleton<SceneRenderer>::instance(); }
   void render();
 private:
+  SceneRenderer();
   void handle_input();
   void render_scene(Shader& shader, bool assignIndices = false);
   void create_scene();
   void render_gui();
   void new_frame_update();
+  friend class MouseInputHandler;
+  friend class CursorPositionHandler;
+  friend class Singleton<SceneRenderer>;
 private:
   std::vector<std::unique_ptr<Object3D>> m_drawables;
-  MainWindow m_window;
-  // make sure that OpenGL objects are created after glad/glfw setup in MainWindow
-  GPUBuffers m_gpu_buffers;
+  std::unique_ptr<MainWindow> m_window;
+  std::unique_ptr<GPUBuffers> m_gpu_buffers;
   Shader m_main_shader;
   Shader m_outlining_shader;
   Shader m_skybox_shader;

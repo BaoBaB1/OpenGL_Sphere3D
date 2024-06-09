@@ -11,5 +11,7 @@ namespace OpenGLEngineUtils
       static T t;
       return t;
     }
+  private:
+    Singleton() = delete;
   };
 }

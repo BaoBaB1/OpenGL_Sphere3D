@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glad/glad.h>
+#include "Debug.hpp"
+#include "./utils/Macro.hpp"
 
 template<typename T>
 struct OpenGLIdWrapper
@@ -31,12 +33,6 @@ OpenGLIdWrapper<T>& OpenGLIdWrapper<T>::operator=(OpenGLIdWrapper<T>&& other) no
   }
   return *this;
 }
-
-#define OnlyMovable(classname) \
-  classname(const classname&) = delete; \
-  classname& operator=(const classname&) = delete; \
-  classname(classname&&) noexcept = default; \
-  classname& operator=(classname&&) noexcept = default;
 
 class OpenGLObject
 {

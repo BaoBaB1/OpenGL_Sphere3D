@@ -16,6 +16,8 @@ class Texture : public OpenGLObject
 public:
   OnlyMovable(Texture)
   ~Texture();
+  virtual void resize(int w, int h, GLint internalformat, GLint format, GLint type) = 0;
+  virtual void resize(const std::string& filename) = 0;
   std::unique_ptr<unsigned char, StbDeleter> load(const std::string& filename);
   void disable() { m_disabled = true; }
   void enable() { m_disabled = false; }

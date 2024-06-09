@@ -1,21 +1,18 @@
 #pragma once
 
 #include "UserInputHandler.hpp"
-#include <iostream>
+
 class MouseInputHandler : public UserInputHandler
 {
 public:
+  OnlyMovable(MouseInputHandler)
   MouseInputHandler(MainWindow* window);
-  MouseInputHandler(const MouseInputHandler&) = delete;
-  MouseInputHandler& operator=(const MouseInputHandler&) = delete;
-  MouseInputHandler(MouseInputHandler&&) = default;
-  MouseInputHandler& operator=(MouseInputHandler&&) = default;
-  void update_left_button_click_state() { m_left_button_clicked = !m_left_button_clicked; }
-  bool is_left_button_clicked() const { return m_left_button_clicked; }
   int x() const { return m_x; }
   int y() const { return m_y; }
 private:
-  int m_x;
-  int m_y;
-  bool m_left_button_clicked;
+  void left_btn_click_callback(GLFWwindow* window, int button, int action, int mods);
+  void window_size_change_callback(GLFWwindow* window, int width, int height);
+private:
+  int m_x = 0;
+  int m_y = 0;
 };

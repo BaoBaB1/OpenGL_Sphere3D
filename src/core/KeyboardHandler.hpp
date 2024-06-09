@@ -32,6 +32,7 @@ public:
     ESC
   };
 
+  OnlyMovable(KeyboardHandler)
   KeyboardHandler(MainWindow* window);
   KeyboardHandler::KeyState get_keystate(KeyboardHandler::InputKey key) const;
   void reset_state(InputKey key);

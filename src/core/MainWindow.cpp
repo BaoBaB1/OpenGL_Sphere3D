@@ -2,12 +2,11 @@
 #include "KeyboardHandler.hpp"
 #include "CursorPositionHandler.hpp"
 #include "MouseInputHandler.hpp"
-#include "macro.hpp"
+#include "Debug.hpp"
 
 MainWindow::MainWindow(int width, int height, const char* title) :
-  m_width(width), m_height(height), m_title(title) 
+  m_width(width), m_height(height), m_title(title)
 {
-  glfwInit();
   // Tell GLFW what version of OpenGL we are using 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
@@ -24,6 +23,7 @@ MainWindow::MainWindow(int width, int height, const char* title) :
   m_input_handlers.push_back(std::make_unique<CursorPositionHandler>(this));
   m_input_handlers.push_back(std::make_unique<MouseInputHandler>(this));
   glfwMakeContextCurrent(m_window);
+  glfwSetWindowSizeLimits(m_window, 1024, 768, GLFW_DONT_CARE, GLFW_DONT_CARE);
   gladLoadGL();
   glViewport(0, 0, m_width, m_height);
 }
@@ -39,7 +39,7 @@ void MainWindow::notify_all(bool enable)
     phandler->notify(enable);
 }
 
-MainWindow::~MainWindow() 
+MainWindow::~MainWindow()
 {
   glfwDestroyWindow(m_window);
   glfwTerminate();

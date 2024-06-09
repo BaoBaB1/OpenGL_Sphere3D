@@ -19,7 +19,7 @@
 #include "VertexBufferObject.hpp"
 #include "ElementBufferObject.hpp"
 #include "FrameBufferObject.hpp"
-#include "macro.hpp"
+#include "Debug.hpp"
 #include "Camera.hpp"
 #include "KeyboardHandler.hpp"
 #include "CursorPositionHandler.hpp"
@@ -35,9 +35,17 @@ static bool is_gui_opened();
 static void setup_opengl();
 static void setup_imgui(GLFWwindow*);
 static std::string shading_mode_to_str(Object3D::ShadingMode mode);
+static void get_desktop_resolution(int& horizontal, int& vertical);
 
 SceneRenderer::SceneRenderer()
 {
+  glfwInit();
+  int w, h;
+  get_desktop_resolution(w, h);
+
+  // fullscreen window
+  m_window = std::make_unique<MainWindow>(w, h, "MainWindow");
+  m_gpu_buffers = std::make_unique<GPUBuffers>();
   m_main_shader.load("./src/glsl/shader.vert", "./src/glsl/shader.frag");
   m_outlining_shader.load("./src/glsl/outlining.vert", "./src/glsl/outlining.frag");
   m_skybox_shader.load("./src/glsl/skybox.vert", "./src/glsl/skybox.frag");
@@ -46,29 +54,26 @@ SceneRenderer::SceneRenderer()
   m_camera.set_position(glm::vec3(-4.f, 2.f, 3.f));
   m_camera.look_at(glm::vec3(2.f, 0.5f, 0.5f));
   m_projection_mat = glm::mat4(1.f);
-  m_projection_mat = glm::perspective(glm::radians(45.f), (float)m_window.height() / m_window.width(), 0.1f, 100.f);
+  m_projection_mat = glm::perspective(glm::radians(45.f), (float)m_window->width() / m_window->height(), 0.1f, 100.f);
 
-  const int w = m_window.width();
-  const int h = m_window.height();
-
-  auto main_scene_fbo = FrameBufferObject(w, h);
+  auto main_scene_fbo = FrameBufferObject();
   main_scene_fbo.bind();
   main_scene_fbo.attach_texture(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
-  main_scene_fbo.attach_renderbuffer(GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT);
+  main_scene_fbo.attach_renderbuffer(w, h, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT);
   main_scene_fbo.unbind();
   m_fbos["main"] = std::move(main_scene_fbo);
 
-  auto picking_fbo = FrameBufferObject(w, h);
+  auto picking_fbo = FrameBufferObject();
   picking_fbo.bind();
   picking_fbo.attach_texture(w, h, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-  picking_fbo.attach_renderbuffer(GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
+  picking_fbo.attach_renderbuffer(w, h, GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
   picking_fbo.unbind();
   m_fbos["picking"] = std::move(picking_fbo);
 }
 
 void SceneRenderer::render()
 {
-  GLFWwindow* gl_window = m_window.gl_window();
+  GLFWwindow* gl_window = m_window->gl_window();
   ::setup_opengl();
   ::setup_imgui(gl_window);
   create_scene();
@@ -123,7 +128,7 @@ void SceneRenderer::render()
     m_skybox_shader.bind();
     m_skybox_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
     m_skybox_shader.set_matrix4f("projectionMatrix", m_projection_mat);
-    skybox.render(&m_gpu_buffers);
+    skybox.render(m_gpu_buffers.get());
     m_skybox_shader.unbind();
     glDepthFunc(GL_LESS);
     render_gui();
@@ -133,7 +138,7 @@ void SceneRenderer::render()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDisable(GL_DEPTH_TEST);
     m_fbo_default_shader.bind();
-    screen_quad.render(&m_gpu_buffers);
+    screen_quad.render(m_gpu_buffers.get());
 
     glfwSwapBuffers(gl_window);
   }
@@ -178,7 +183,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
       glStencilFunc(GL_ALWAYS, 1, 0xFF);
       // enable writing to stencil buffer
       glStencilMask(0xFF);
-      pdrawable->render(&m_gpu_buffers);
+      pdrawable->render(m_gpu_buffers.get());
 
       // second pass, discard fragments
       glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
@@ -196,7 +201,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
       m_outlining_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
       m_outlining_shader.set_matrix4f("projectionMatrix", m_projection_mat);
       m_outlining_shader.set_matrix4f("modelMatrix", pobj->model_matrix());
-      pdrawable->render(&m_gpu_buffers);
+      pdrawable->render(m_gpu_buffers.get());
 
       glStencilFunc(GL_ALWAYS, 0, 0xFF);
       glStencilMask(0xFF);
@@ -208,7 +213,7 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     }
     else
     {
-      pdrawable->render(&m_gpu_buffers);
+      pdrawable->render(m_gpu_buffers.get());
     }
   }
 }
@@ -288,101 +293,55 @@ void SceneRenderer::new_frame_update()
   m_camera.scale_speed(io.DeltaTime);
 
   double x, y;
-  glfwGetCursorPos(m_window.gl_window(), &x, &y);
+  glfwGetCursorPos(m_window->gl_window(), &x, &y);
   // update virtual cursor pos to avoid camera jumps after cursor goes out of window or window regains focus,
   // because once cursor goes out of glfw window cursor callback is no longer triggered
-  auto& h = m_window.input_handlers()[1];
+  auto& h = m_window->input_handlers()[1];
   assert(h->type() == UserInputHandler::CURSOR_POSITION);
   static_cast<CursorPositionHandler*>(h.get())->update_current_pos(x, y);
 }
 
 void SceneRenderer::handle_input()
 {
-  for (const auto& phandler : m_window.input_handlers())
+  // handle pressed key every frame for smooth movement because glfw calls callback not every frame
+  KeyboardHandler* kh = static_cast<KeyboardHandler*>(m_window->input_handlers()[0].get());
+  assert(kh->type() == UserInputHandler::KEYBOARD);
+  if (kh->disabled())
+    return;
+  using InputKey = KeyboardHandler::InputKey;
+  if (kh->get_keystate(InputKey::W) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_UP) == KeyboardHandler::PRESSED)
   {
-    if (phandler->disabled())
-      continue;
-    switch (phandler->type())
+    m_camera.move(Camera::Direction::FORWARD);
+  }
+  if (kh->get_keystate(InputKey::A) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_LEFT) == KeyboardHandler::PRESSED)
+  {
+    m_camera.move(Camera::Direction::LEFT);
+  }
+  if (kh->get_keystate(InputKey::S) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_DOWN) == KeyboardHandler::PRESSED)
+  {
+    m_camera.move(Camera::Direction::BACKWARD);
+  }
+  if (kh->get_keystate(InputKey::D) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_RIGHT) == KeyboardHandler::PRESSED)
+  {
+    m_camera.move(Camera::Direction::RIGHT);
+  }
+  if (kh->get_keystate(InputKey::ESC) == KeyboardHandler::PRESSED)
+  {
+    for (auto& drawable : m_drawables)
     {
-    case UserInputHandler::KEYBOARD:
-    {
-      using InputKey = KeyboardHandler::InputKey;
-      KeyboardHandler* kh = static_cast<KeyboardHandler*>(phandler.get());
-      if (kh->get_keystate(InputKey::W) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_UP) == KeyboardHandler::PRESSED)
-      {
-        m_camera.move(Camera::Direction::FORWARD);
-      }
-      if (kh->get_keystate(InputKey::A) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_LEFT) == KeyboardHandler::PRESSED)
-      {
-        m_camera.move(Camera::Direction::LEFT);
-      }
-      if (kh->get_keystate(InputKey::S) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_DOWN) == KeyboardHandler::PRESSED)
-      {
-        m_camera.move(Camera::Direction::BACKWARD);
-      }
-      if (kh->get_keystate(InputKey::D) == KeyboardHandler::PRESSED || kh->get_keystate(InputKey::ARROW_RIGHT) == KeyboardHandler::PRESSED)
-      {
-        m_camera.move(Camera::Direction::RIGHT);
-      }
-      if (kh->get_keystate(InputKey::ESC) == KeyboardHandler::PRESSED)
-      {
-        for (auto& drawable : m_drawables)
-        {
-          drawable->select(false);
-        }
-      }
-      if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::PRESSED)
-      {
-        m_camera.freeze();
-        glfwSetInputMode(m_window.gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      }
-      else if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::RELEASED)
-      {
-        m_camera.unfreeze();
-        kh->reset_state(InputKey::LEFT_SHIFT);
-        glfwSetInputMode(m_window.gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      }
+      drawable->select(false);
     }
-    break;
-    case UserInputHandler::CURSOR_POSITION:
-    {
-      CursorPositionHandler* ch = static_cast<CursorPositionHandler*>(phandler.get());
-      double x, y;
-      ch->xy_offset(x, y);
-      if (x != 0. || y != 0.)
-        m_camera.add_to_yaw_and_pitch(x, y);
-    }
-    break;
-    case UserInputHandler::MOUSE_INPUT:
-    {
-      MouseInputHandler* mh = static_cast<MouseInputHandler*>(phandler.get());
-      if (mh->is_left_button_clicked())
-      {
-        int x, y;
-        x = mh->x();
-        y = mh->y();
-        const auto& picking_fbo = m_fbos["picking"];
-        picking_fbo.bind();
-        glBindTexture(GL_TEXTURE_2D, picking_fbo.texture()->id());
-        float id[4] = {};
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(x, y, 1, 1, GL_RGBA, GL_FLOAT, &id);
-        if (id[0] != 0)
-        {
-          std::cout << "Pixel " << x << ',' << y << " object id = " << id[0] << '\n';
-          int index = (int)id[0] - 1;
-          const auto& clicked_obj = m_drawables[index];
-          clicked_obj->select(true);
-        }
-        glReadBuffer(0);
-        picking_fbo.unbind();
-        mh->update_left_button_click_state();
-      }
-    }
-    break;
-    default:
-      break;
-    }
+  }
+  if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::PRESSED)
+  {
+    m_camera.freeze();
+    glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
+  else if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::RELEASED)
+  {
+    m_camera.unfreeze();
+    kh->reset_state(InputKey::LEFT_SHIFT);
+    glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   }
 }
 
@@ -399,11 +358,11 @@ void SceneRenderer::render_gui()
   {
     g_bools[0] = !g_bools[0];
     // notify all input handlers
-    m_window.notify_all(!g_bools[0]);
+    m_window->notify_all(!g_bools[0]);
     if (::is_gui_opened())
-      glfwSetInputMode(m_window.gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     else
-      glfwSetInputMode(m_window.gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   }
   if (::is_gui_opened())
   {
@@ -589,6 +548,14 @@ static std::string shading_mode_to_str(Object3D::ShadingMode mode)
   default:
     return "Unknown";
   }
+}
+
+void get_desktop_resolution(int& horizontal, int& vertical)
+{
+  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  auto info = glfwGetVideoMode(monitor);
+  horizontal = info->width;
+  vertical = info->height;
 }
 
 static bool is_gui_opened()

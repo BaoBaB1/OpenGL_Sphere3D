@@ -2,7 +2,7 @@
 #include <chrono>
 #include <utility>
 #include "Icosahedron.hpp"
-#include "./core/macro.hpp"
+#include "./core/Debug.hpp"
 
 Icosahedron::Icosahedron()
 {

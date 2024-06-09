@@ -4,7 +4,9 @@
 #include <glm/vec3.hpp>
 #include <GLFW/glfw3.h>
 #include <map>
+#include "Debug.hpp"
 #include "./utils/IObserver.hpp"
+#include "./utils/Macro.hpp"
 
 class MainWindow;
 
@@ -20,6 +22,7 @@ public:
     MOUSE_INPUT,
   };
 public:
+  OnlyMovable(UserInputHandler)
   virtual void enable() { m_disabled = false; }
   virtual void disable() { m_disabled = true; }
   void notify(bool _enable) override;
