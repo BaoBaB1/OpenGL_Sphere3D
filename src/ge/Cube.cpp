@@ -2,49 +2,49 @@
 
 Cube::Cube()
 {
-  m_mesh.reserve_vertices(24);
-  m_mesh.reserve_faces(12);
+  auto& mesh = m_meshes[0];
+  mesh.vertices().reserve(24);
+  mesh.faces().reserve(12);
   for (int i = 0; i < 3; ++i) {
-    m_mesh.append_vertex(Vertex(0.f, 0.f, 0.f)); 
-    m_mesh.append_vertex(Vertex(1.f, 0.f, 0.f)); 
-    m_mesh.append_vertex(Vertex(1.f, 1.f, 0.f)); 
-    m_mesh.append_vertex(Vertex(0.f, 1.f, 0.f)); 
-    m_mesh.append_vertex(Vertex(0.f, 0.f, 1.f));
-    m_mesh.append_vertex(Vertex(1.f, 0.f, 1.f));
-    m_mesh.append_vertex(Vertex(1.f, 1.f, 1.f));
-    m_mesh.append_vertex(Vertex(0.f, 1.f, 1.f));
+    mesh.append_vertex(Vertex(0.f, 0.f, 0.f)); 
+    mesh.append_vertex(Vertex(1.f, 0.f, 0.f)); 
+    mesh.append_vertex(Vertex(1.f, 1.f, 0.f)); 
+    mesh.append_vertex(Vertex(0.f, 1.f, 0.f)); 
+    mesh.append_vertex(Vertex(0.f, 0.f, 1.f));
+    mesh.append_vertex(Vertex(1.f, 0.f, 1.f));
+    mesh.append_vertex(Vertex(1.f, 1.f, 1.f));
+    mesh.append_vertex(Vertex(0.f, 1.f, 1.f));
   }
   // back
-  m_mesh.append_face(Face{ 1, 0, 3 });
-  m_mesh.append_face(Face{ 1, 3, 2 });
+  mesh.append_face(Face{ 1, 0, 3 });
+  mesh.append_face(Face{ 1, 3, 2 });
   // front
-  m_mesh.append_face(Face{ 4, 5, 6 });
-  m_mesh.append_face(Face{ 4, 6, 7 });
+  mesh.append_face(Face{ 4, 5, 6 });
+  mesh.append_face(Face{ 4, 6, 7 });
   // bottom
-  m_mesh.append_face(Face{ 8, 9, 13 });
-  m_mesh.append_face(Face{ 8, 13, 12 });
+  mesh.append_face(Face{ 8, 9, 13 });
+  mesh.append_face(Face{ 8, 13, 12 });
   // top
-  m_mesh.append_face(Face{ 15, 14, 10 });
-  m_mesh.append_face(Face{ 15, 10, 11 });
+  mesh.append_face(Face{ 15, 14, 10 });
+  mesh.append_face(Face{ 15, 10, 11 });
   // left
-  m_mesh.append_face(Face{ 16, 20, 23 });
-  m_mesh.append_face(Face{ 16, 23, 19 });
+  mesh.append_face(Face{ 16, 20, 23 });
+  mesh.append_face(Face{ 16, 23, 19 });
   // right
-  m_mesh.append_face(Face{ 21, 17, 18 });
-  m_mesh.append_face(Face{ 21, 18, 22 });
-  // call it here to avoid vertex duplication in Model::apply_shading(),
-  // but Model::apply_shading() also works fine
-  calc_normals(m_mesh, Object3D::ShadingMode::FLAT_SHADING);
+  mesh.append_face(Face{ 21, 17, 18 });
+  mesh.append_face(Face{ 21, 18, 22 });
+  calc_normals(mesh, Object3D::ShadingMode::FLAT_SHADING);
 }
 
 void Cube::set_texture(const std::string& filename) {
-  m_texture = Texture2D(filename);
+  auto& mesh = m_meshes[0];
+  mesh.texture() = std::make_shared<Texture2D>(filename);
   int cnt = 0;
-  for (const auto& face : m_mesh.faces()) {
+  for (const auto& face : mesh.faces()) {
     assert(face.size == 3);
     for (int i = 0; i < face.size; ++i) 
     {
-      Vertex& v = m_mesh.vertices()[face.data[i]];
+      Vertex& v = mesh.vertices()[face.data[i]];
       if (cnt % 2 == 0) {
         if (i == 0) {
           v.texture = glm::vec2();

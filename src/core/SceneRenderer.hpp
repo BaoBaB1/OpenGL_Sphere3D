@@ -13,26 +13,29 @@
 
 class MouseInputHandler;
 class CursorPositionHandler;
+class Ui;
 
 class SceneRenderer
 {
 public:
   static SceneRenderer& instance() { return Singleton<SceneRenderer>::instance(); }
+  ~SceneRenderer();
   void render();
 private:
   SceneRenderer();
   void handle_input();
   void render_scene(Shader& shader, bool assignIndices = false);
   void create_scene();
-  void render_gui();
   void new_frame_update();
   friend class MouseInputHandler;
   friend class CursorPositionHandler;
   friend class Singleton<SceneRenderer>;
+  friend class Ui;
 private:
   std::vector<std::unique_ptr<Object3D>> m_drawables;
   std::unique_ptr<MainWindow> m_window;
   std::unique_ptr<GPUBuffers> m_gpu_buffers;
+  std::unique_ptr<Ui> m_ui;
   Shader m_main_shader;
   Shader m_outlining_shader;
   Shader m_skybox_shader;

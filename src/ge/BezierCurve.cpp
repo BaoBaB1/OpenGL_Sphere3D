@@ -28,10 +28,11 @@ void BezierCurve::set_control_points(const std::vector<Vertex>& c_points)
 
 void BezierCurve::render(GPUBuffers* buffers)
 {
-  if (!m_mesh.vertices().size())
+  auto& mesh = m_meshes[0];
+  if (!mesh.vertices().size())
   {
     const float step = 0.005f;
-    std::vector<Vertex>& vertices = m_mesh.vertices();
+    std::vector<Vertex>& vertices = mesh.vertices();
     vertices.reserve(static_cast<size_t>(1. / step));
     switch (m_type)
     {

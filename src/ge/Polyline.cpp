@@ -2,7 +2,7 @@
 
 void Polyline::render(GPUBuffers* gpu_buffers) 
 {
-  assert(m_mesh.vertices().size() > 0);
+  assert(m_meshes[0].vertices().size() > 0);
   RenderConfig cfg;
   cfg.use_indices = false;
   cfg.mode = GL_LINE_STRIP;
@@ -11,5 +11,5 @@ void Polyline::render(GPUBuffers* gpu_buffers)
 
 void Polyline::add(const Vertex& point) 
 {
-  m_mesh.append_vertex(point);
+  m_meshes[0].append_vertex(point);
 }

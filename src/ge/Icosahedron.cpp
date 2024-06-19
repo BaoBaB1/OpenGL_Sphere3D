@@ -6,60 +6,62 @@
 
 Icosahedron::Icosahedron()
 {
-  m_mesh.vertices().reserve(12);
-  m_mesh.faces().reserve(20);
+  auto& mesh = m_meshes[0];
+  mesh.vertices().reserve(12);
+  mesh.faces().reserve(20);
   float phi = (1.0f + std::sqrt(5.0f)) * 0.5f; // golden ratio
   float a = 1.0f;
   float b = a / phi;
   // 12 points
-  m_mesh.append_vertex(Vertex(0.f, b, -a));
-  m_mesh.append_vertex(Vertex(b, a, 0.f));
-  m_mesh.append_vertex(Vertex(-b, a, 0.f));
-  m_mesh.append_vertex(Vertex(0.f, b, a));
-  m_mesh.append_vertex(Vertex(0.f, -b, a));
-  m_mesh.append_vertex(Vertex(-a, 0.f, b));
-  m_mesh.append_vertex(Vertex(0.f, -b, -a));
-  m_mesh.append_vertex(Vertex(a, 0.f, -b));
-  m_mesh.append_vertex(Vertex(a, 0.f, b));
-  m_mesh.append_vertex(Vertex(-a, 0.f, -b));
-  m_mesh.append_vertex(Vertex(b, -a, 0.f));
-  m_mesh.append_vertex(Vertex(-b, -a, 0.f));
+  mesh.append_vertex(Vertex(0.f, b, -a));
+  mesh.append_vertex(Vertex(b, a, 0.f));
+  mesh.append_vertex(Vertex(-b, a, 0.f));
+  mesh.append_vertex(Vertex(0.f, b, a));
+  mesh.append_vertex(Vertex(0.f, -b, a));
+  mesh.append_vertex(Vertex(-a, 0.f, b));
+  mesh.append_vertex(Vertex(0.f, -b, -a));
+  mesh.append_vertex(Vertex(a, 0.f, -b));
+  mesh.append_vertex(Vertex(a, 0.f, b));
+  mesh.append_vertex(Vertex(-a, 0.f, -b));
+  mesh.append_vertex(Vertex(b, -a, 0.f));
+  mesh.append_vertex(Vertex(-b, -a, 0.f));
   // 20 faces
-  m_mesh.append_face(Face({ 2, 1, 0 }));
-  m_mesh.append_face(Face({ 1, 2, 3 }));
-  m_mesh.append_face(Face({ 5, 4, 3 }));
-  m_mesh.append_face(Face({ 4, 8, 3 }));
-  m_mesh.append_face(Face({ 7, 6, 0 }));
-  m_mesh.append_face(Face({ 6, 9, 0 }));
-  m_mesh.append_face(Face({ 11, 10, 4 }));
-  m_mesh.append_face(Face({ 10, 11, 6 }));
-  m_mesh.append_face(Face({ 9, 5, 2 }));
-  m_mesh.append_face(Face({ 5, 9, 11 }));
-  m_mesh.append_face(Face({ 8, 7, 1 }));
-  m_mesh.append_face(Face({ 7, 8, 10 }));
-  m_mesh.append_face(Face({ 2, 5, 3 }));
-  m_mesh.append_face(Face({ 8, 1, 3 }));
-  m_mesh.append_face(Face({ 9, 2, 0 }));
-  m_mesh.append_face(Face({ 1, 7, 0 }));
-  m_mesh.append_face(Face({ 11, 9, 6 }));
-  m_mesh.append_face(Face({ 7, 10, 6 }));
-  m_mesh.append_face(Face({ 5, 11, 4 }));
-  m_mesh.append_face(Face({ 10, 8, 4 }));
-  m_cached_meshes[0] = m_mesh;
+  mesh.append_face(Face({ 2, 1, 0 }));
+  mesh.append_face(Face({ 1, 2, 3 }));
+  mesh.append_face(Face({ 5, 4, 3 }));
+  mesh.append_face(Face({ 4, 8, 3 }));
+  mesh.append_face(Face({ 7, 6, 0 }));
+  mesh.append_face(Face({ 6, 9, 0 }));
+  mesh.append_face(Face({ 11, 10, 4 }));
+  mesh.append_face(Face({ 10, 11, 6 }));
+  mesh.append_face(Face({ 9, 5, 2 }));
+  mesh.append_face(Face({ 5, 9, 11 }));
+  mesh.append_face(Face({ 8, 7, 1 }));
+  mesh.append_face(Face({ 7, 8, 10 }));
+  mesh.append_face(Face({ 2, 5, 3 }));
+  mesh.append_face(Face({ 8, 1, 3 }));
+  mesh.append_face(Face({ 9, 2, 0 }));
+  mesh.append_face(Face({ 1, 7, 0 }));
+  mesh.append_face(Face({ 11, 9, 6 }));
+  mesh.append_face(Face({ 7, 10, 6 }));
+  mesh.append_face(Face({ 5, 11, 4 }));
+  mesh.append_face(Face({ 10, 8, 4 }));
 }
 
 void Icosahedron::project_points_on_sphere() {
-  for (Vertex& v : m_mesh.vertices()) {
+  auto& mesh = m_meshes[0];
+  for (Vertex& v : mesh.vertices()) {
     v.position = glm::normalize(v.position);
   }
 }
 
 void Icosahedron::subdivide_triangles(int subdivision_level, const Vertex& a, const Vertex& b, const Vertex& c) {
   if (subdivision_level == 0) {
-    GLuint ind = m_mesh.append_vertex(a);
-    GLuint ind2 = m_mesh.append_vertex(b);
-    GLuint ind3 = m_mesh.append_vertex(c);
-    m_mesh.append_face(Face({ ind, ind2, ind3 }));
+    auto& mesh = m_meshes[0];
+    GLuint ind = mesh.append_vertex(a);
+    GLuint ind2 = mesh.append_vertex(b);
+    GLuint ind3 = mesh.append_vertex(c);
+    mesh.append_face(Face({ ind, ind2, ind3 }));
     return;
   }
   Vertex ab((a + b) / 2);
@@ -74,10 +76,9 @@ void Icosahedron::subdivide_triangles(int subdivision_level, const Vertex& a, co
 }
 
 void Icosahedron::subdivide_triangles(int subdivision_depth) {
-  std::vector<Face> faces = std::move(m_mesh.faces());
-  std::vector<Vertex> vertices = std::move(m_mesh.vertices());
-  allocate_memory_before_subdivision(subdivision_depth);
-  //auto start = std::chrono::high_resolution_clock::now();
+  std::vector<Face> faces = std::move(m_meshes[0].faces());
+  std::vector<Vertex> vertices = std::move(m_meshes[0].vertices());
+  allocate_memory_before_subdivision(subdivision_depth, (int)faces.size());
   for (size_t i = 0; i < faces.size(); ++i) {
     assert(faces[i].size == 3);
     GLuint index = faces[i].data[0];
@@ -85,19 +86,17 @@ void Icosahedron::subdivide_triangles(int subdivision_depth) {
     GLuint index3 = faces[i].data[2];
     subdivide_triangles(subdivision_depth, vertices[index], vertices[index2], vertices[index3]);
   }
-  auto end = std::chrono::high_resolution_clock::now();
-  //std::chrono::duration<double, std::milli> ms = end - start;
-  //DEBUG("Icosahedron::subdivide_triangles duration " << ms.count() << " ms\n");
-  m_cached_meshes[0] = m_mesh;
+  //m_cached_meshes[0] = mesh;
 }
 
-void Icosahedron::allocate_memory_before_subdivision(int subdivision_depth) {
-  m_mesh.vertices().clear();
-  m_mesh.faces().clear();
-  size_t numfaces = m_cached_meshes[0].faces().size() * (size_t)std::pow(4, subdivision_depth);
-  size_t numvertices = numfaces * 3;
-  DEBUG("preallocating memory for " << numvertices << " icosahedron points\n");
-  m_mesh.vertices().reserve(numvertices);
-  DEBUG("preallocating memory for " << numfaces << " icosahedron faces\n");
-  m_mesh.faces().reserve(numfaces);
+void Icosahedron::allocate_memory_before_subdivision(int subdivision_depth, int face_count) {
+  auto& mesh = m_meshes[0];
+  mesh.vertices().clear();
+  mesh.faces().clear();
+  size_t new_face_count = face_count * (size_t)std::pow(4, subdivision_depth);
+  size_t new_vert_count = new_face_count* 3;
+  mesh.vertices().reserve(new_vert_count);
+  mesh.faces().reserve(new_face_count);
+  DEBUG("preallocating memory for " << new_vert_count << " icosahedron points\n");
+  DEBUG("preallocating memory for " << new_face_count << " icosahedron faces\n");
 }

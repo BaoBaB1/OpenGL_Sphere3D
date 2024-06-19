@@ -13,6 +13,7 @@
 #include <sstream>
 
 #include "SceneRenderer.hpp"
+#include "Ui.hpp"
 #include "MainWindow.hpp"
 #include "Shader.hpp"
 #include "VertexArrayObject.hpp"
@@ -31,10 +32,7 @@
 #include "./ge/BezierCurve.hpp"
 #include "./ge/Skybox.hpp"
 
-static bool is_gui_opened();
 static void setup_opengl();
-static void setup_imgui(GLFWwindow*);
-static std::string shading_mode_to_str(Object3D::ShadingMode mode);
 static void get_desktop_resolution(int& horizontal, int& vertical);
 
 SceneRenderer::SceneRenderer()
@@ -46,6 +44,7 @@ SceneRenderer::SceneRenderer()
   // fullscreen window
   m_window = std::make_unique<MainWindow>(w, h, "MainWindow");
   m_gpu_buffers = std::make_unique<GPUBuffers>();
+  m_ui = std::make_unique<Ui>(*this, m_window.get());
   m_main_shader.load("./src/glsl/shader.vert", "./src/glsl/shader.frag");
   m_outlining_shader.load("./src/glsl/outlining.vert", "./src/glsl/outlining.frag");
   m_skybox_shader.load("./src/glsl/skybox.vert", "./src/glsl/skybox.frag");
@@ -71,11 +70,14 @@ SceneRenderer::SceneRenderer()
   m_fbos["picking"] = std::move(picking_fbo);
 }
 
+SceneRenderer::~SceneRenderer()
+{
+}
+
 void SceneRenderer::render()
 {
   GLFWwindow* gl_window = m_window->gl_window();
   ::setup_opengl();
-  ::setup_imgui(gl_window);
   create_scene();
 
   for (const auto& [name, fbo] : m_fbos)
@@ -131,7 +133,7 @@ void SceneRenderer::render()
     skybox.render(m_gpu_buffers.get());
     m_skybox_shader.unbind();
     glDepthFunc(GL_LESS);
-    render_gui();
+    m_ui->render();
     main_fbo.unbind();
 
     // set GL_FILL mode because next we are rendering texture
@@ -142,9 +144,6 @@ void SceneRenderer::render()
 
     glfwSwapBuffers(gl_window);
   }
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
 }
 
 void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
@@ -157,7 +156,8 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     Object3D* pobj = m_drawables[i].get();
     IDrawable* pdrawable = static_cast<IDrawable*>(pobj);
     shader.set_matrix4f("modelMatrix", pobj->model_matrix());
-    shader.set_bool("applyTexture", pobj->m_texture.has_value() && !pobj->m_texture->disabled());
+
+    shader.set_bool("applyTexture", pobj->has_active_texture());
     shader.set_bool("applyShading", pobj->m_shading_mode != Object3D::ShadingMode::NO_SHADING && !pobj->is_light_source());
     if (pobj->is_rotating())
     {
@@ -291,6 +291,10 @@ void SceneRenderer::new_frame_update()
 {
   ImGuiIO& io = ImGui::GetIO();
   m_camera.scale_speed(io.DeltaTime);
+  for (auto& obj : m_drawables) 
+  {
+    obj->set_delta_time(io.DeltaTime);
+  }
 
   double x, y;
   glfwGetCursorPos(m_window->gl_window(), &x, &y);
@@ -345,161 +349,6 @@ void SceneRenderer::handle_input()
   }
 }
 
-static bool g_bools[16];
-static float g_floats[16];
-
-void SceneRenderer::render_gui()
-{
-  ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-  // open/closed configuration menu
-  if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_GraveAccent))
-  {
-    g_bools[0] = !g_bools[0];
-    // notify all input handlers
-    m_window->notify_all(!g_bools[0]);
-    if (::is_gui_opened())
-      glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    else
-      glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  }
-  if (::is_gui_opened())
-  {
-    ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    if (ImGui::CollapsingHeader("Configuration"))
-    {
-      if (ImGui::Checkbox("Don't fill polygons", &g_bools[1]))
-      {
-        glGetIntegerv(GL_POLYGON_MODE, &m_polygon_mode);
-        if (m_polygon_mode == GL_LINE)
-          m_polygon_mode = GL_FILL;
-        else
-          m_polygon_mode = GL_LINE;
-      }
-    }
-    if (ImGui::CollapsingHeader("Objects"))
-    {
-      size_t id = 1;
-      for (const auto& drawable : m_drawables)
-      {
-        std::string name = drawable->name() + std::to_string(id++);
-        if (ImGui::TreeNode(name.c_str()))
-        {
-          float len = ImGui::GetWindowSize().x;
-          // multiply by 3 because 'nesting' level is 3.
-          float indent = ImGui::GetStyle().IndentSpacing * 3;
-          indent += ImGui::CalcTextSize("X").x;
-          indent += ImGui::CalcTextSize("Y").x;
-          indent += ImGui::CalcTextSize("Z").x;
-          len -= indent;
-          ImGui::PushItemWidth(len / 3);
-
-          ImGui::Separator();
-          ImGui::Text("Translation");
-          g_floats[0] = drawable->m_translation.x;
-          g_floats[1] = drawable->m_translation.y;
-          g_floats[2] = drawable->m_translation.z;
-          if (ImGui::SliderFloat("X", &g_floats[0], -10.0f, 10.0f))
-            // prev = drawable->m_translation.x; curr = g_floats[0]; diff = curr - prev
-            drawable->translate(glm::vec3(g_floats[0] - drawable->m_translation.x, 0.f, 0.f));
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y", &g_floats[1], -10.0f, 10.0f))
-            drawable->translate(glm::vec3(0.f, g_floats[1] - drawable->m_translation.y, 0.f));
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z", &g_floats[2], -10.0f, 10.0f))
-            drawable->translate(glm::vec3(0.f, 0.f, g_floats[2] - drawable->m_translation.z));
-          ImGui::Separator();
-
-          ImGui::Text("Scale");
-          if (ImGui::SliderFloat("X##2", &drawable->m_scale.x, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y##2", &drawable->m_scale.y, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z##2", &drawable->m_scale.z, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::Separator();
-
-          ImGui::Text("Rotation");
-          g_bools[2] = drawable->is_rotating();
-          if (ImGui::Checkbox("Rotating", &g_bools[2]))
-            drawable->rotating(g_bools[2]);
-          if (ImGui::SliderAngle("Angle", &drawable->m_rotation_angle))
-          {
-            // if is_rotating == true, then rotation is made every frame in Object3D::render_geom()
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          if (ImGui::SliderFloat("X##3", &drawable->m_rotation_axis.x, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y##3", &drawable->m_rotation_axis.y, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z##3", &drawable->m_rotation_axis.z, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::Separator();
-
-          ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.65f);
-          ImGui::Text("Color");
-          if (ImGui::ColorEdit4("Choose color", &drawable->m_color.x))
-            drawable->set_color(drawable->m_color);
-          ImGui::Separator();
-
-          ImGui::SameLine();
-          g_bools[4] = drawable->is_bbox_visible();
-          if (ImGui::Checkbox("Show bounding box", &g_bools[4]))
-            drawable->visible_bbox(g_bools[4]);
-
-          // TODO: rewrite later as e.g. 2D Circle has surface but it won't be derived from Model class
-          if (drawable->has_surface())
-          {
-            g_bools[3] = drawable->is_normals_visible();
-            if (ImGui::Checkbox("Visible normals", &g_bools[3]))
-              drawable->visible_normals(g_bools[3]);
-            std::vector<std::pair<Object3D::ShadingMode, std::string>> modes(3);
-            for (int i = 0; i < 3; i++)
-            {
-              Object3D::ShadingMode mode = static_cast<Object3D::ShadingMode>(i);
-              modes[i] = std::make_pair(mode, ::shading_mode_to_str(mode));
-            }
-            std::string current_mode = ::shading_mode_to_str(drawable->shading_mode());
-            if (ImGui::BeginCombo("Shading mode", current_mode.c_str()))
-            {
-              for (int i = 0; i < 3; i++)
-              {
-                if (ImGui::Selectable(modes[i].second.c_str(), &g_bools[4]))
-                  drawable->apply_shading(modes[i].first);
-                if (g_bools[4])
-                  ImGui::SetItemDefaultFocus();
-              }
-              ImGui::EndCombo();
-            }
-            ImGui::Separator();
-          }
-          ImGui::TreePop();
-        }
-      }
-    }
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-    ImGui::End();
-  }
-  ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
 void ScreenQuad::render(GPUBuffers* gpu_buffers)
 {
   auto& vao = gpu_buffers->vao;
@@ -525,40 +374,10 @@ static void setup_opengl()
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-static void setup_imgui(GLFWwindow* window)
-{
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-  ImGui_ImplGlfw_InitForOpenGL(window, true); // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
-  ImGui_ImplOpenGL3_Init();
-}
-
-static std::string shading_mode_to_str(Object3D::ShadingMode mode)
-{
-  switch (mode)
-  {
-  case Object3D::ShadingMode::SMOOTH_SHADING:
-    return "Smooth shading";
-  case Object3D::ShadingMode::FLAT_SHADING:
-    return "Flat shading";
-  case Object3D::ShadingMode::NO_SHADING:
-    return "No shading";
-  default:
-    return "Unknown";
-  }
-}
-
 void get_desktop_resolution(int& horizontal, int& vertical)
 {
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   auto info = glfwGetVideoMode(monitor);
   horizontal = info->width;
   vertical = info->height;
-}
-
-static bool is_gui_opened()
-{
-  return g_bools[0];
 }

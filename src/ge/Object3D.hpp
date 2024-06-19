@@ -4,6 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_map>
 #include <optional>
+#include <list>
+#include <map>
 #include "./core/Shader.hpp"
 #include "./core/GPUBuffers.hpp"
 #include "./core/Texture2D.hpp"
@@ -26,11 +28,12 @@ public:
   virtual void set_color(const glm::vec4& color);
   virtual void set_texture(const std::string& filename);
   glm::vec3 center();
+  void set_shading_mode(ShadingMode mode) { m_shading_mode = mode; }
+  void set_delta_time(float delta_time) { m_delta_time = delta_time; }
   void rotate(float angle, const glm::vec3& axis);
   void scale(const glm::vec3& scale);
   void translate(const glm::vec3& translation);
-  void set_bbox(const BoundingBox& bbox) { m_bbox = bbox; }
-  std::vector<Vertex> normals_as_lines();
+  std::vector<Vertex> normals_as_lines(const Mesh& mesh);
   BoundingBox calculate_bbox();
   float rotation_angle() const { return m_rotation_angle; }
   glm::vec3 rotation_axis() const { return m_rotation_axis; }
@@ -46,16 +49,16 @@ public:
   bool is_light_source() const { return get_flag(LIGHT_SOURCE); }
   bool is_bbox_visible() const { return get_flag(VISIBLE_BBOX); }
   bool is_selected() const { return get_flag(IS_SELECTED); }
+  bool has_active_texture() const;
   ShadingMode shading_mode() const { return m_shading_mode; }
   const glm::mat4& model_matrix() const { return m_model_mat; }
   const glm::vec4& color() const { return m_color; }
-  Mesh& mesh() { return m_mesh; }
-  const Mesh& mesh() const { return m_mesh; }
-  std::optional<Texture2D>& texture() { return m_texture; }
-  const std::optional<Texture2D>& texture() const { return m_texture; }
-  BoundingBox& bbox() { return m_bbox; }
-  const BoundingBox& bbox() const { return m_bbox; }
+  Mesh& mesh(size_t index) { return m_meshes[index]; }
+  const Mesh& mesh(size_t index) const { return m_meshes[index]; }
+  std::vector<Mesh>& meshes() { return m_meshes; }
+  const std::vector<Mesh>& meshes() const { return m_meshes; }
   friend class SceneRenderer;
+  friend class Ui;
 protected:
   enum Flag 
   {
@@ -63,7 +66,8 @@ protected:
     VISIBLE_NORMALS = (1 << 1),
     LIGHT_SOURCE = (1 << 2),
     VISIBLE_BBOX = (1 << 3),
-    IS_SELECTED = (1 << 4)
+    IS_SELECTED = (1 << 4),
+    RESET_CACHED_NORMALS = (1 << 5)
   };
   struct RenderConfig
   {
@@ -113,17 +117,17 @@ protected:
   void clear_flag(Flag flag) { m_flags &= ~flag; }
   bool get_flag(Flag flag) const { return m_flags & flag; }
 protected:
-  Mesh m_mesh;
-  std::optional<Texture2D> m_texture;
-  BoundingBox m_bbox;
-  glm::mat4 m_model_mat;
-  glm::vec4 m_color;
-  float m_rotation_angle;
-  glm::vec3 m_rotation_axis;
-  glm::vec3 m_translation;
-  glm::vec3 m_scale;
-  int m_flags;
-  ShadingMode m_shading_mode;
+  std::vector<Mesh> m_meshes;
+  glm::mat4 m_model_mat = glm::mat4(1.f);
+  glm::vec4 m_color = glm::vec4(1.f);
+  float m_rotation_angle = 0.f;
+  float m_delta_time = 0.f;
+  glm::vec3 m_rotation_axis = glm::vec3(0.f);
+  glm::vec3 m_translation = glm::vec3(0.f);
+  glm::vec3 m_scale = glm::vec3(1.f);
+  int m_flags = RESET_CACHED_NORMALS;
+  ShadingMode m_shading_mode = ShadingMode::NO_SHADING;
   VertexFinder m_vertex_finder;
-  std::array<Mesh, 3> m_cached_meshes;
+  BoundingBox m_bbox;             // bounding box which covers all meshes
+  std::map<ShadingMode, std::vector<Mesh>> m_cached_meshes;
 };

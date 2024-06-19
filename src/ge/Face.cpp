@@ -38,6 +38,17 @@ Face::~Face() {
   delete[] data;
 }
 
+void Face::resize(int _size)
+{
+  if (data)
+  {
+    delete[] data;
+  }
+  size = _size;
+  data = new GLuint[size];
+  memset(data, 0, sizeof(GLuint) * size);
+}
+
 Face::Face(const std::initializer_list<GLuint>& _indices) {
   size = _indices.size();
   data = new GLuint[size];
