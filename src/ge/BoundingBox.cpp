@@ -22,12 +22,6 @@ void BoundingBox::render(GPUBuffers* buffers)
   // thus all buffers must be already bound
   auto& vao = buffers->vao;
   auto& vbo = buffers->vbo;
-
-  GLint current_shader_id = 0;
-  glGetIntegerv(GL_CURRENT_PROGRAM, &current_shader_id);
-  assert(current_shader_id != 0);
-  glUniform1i(glGetUniformLocation(current_shader_id, "applyShading"), false);
-
   std::array<glm::vec3, 8> bbox_points = points();
   std::array<Vertex, 8> converted;
   for (size_t i = 0; i < 8; i++)
@@ -39,7 +33,7 @@ void BoundingBox::render(GPUBuffers* buffers)
   auto& ebo = buffers->ebo;
   vbo->set_data(converted.data(), sizeof(Vertex) * 8);
   vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
-  vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
+  vao->link_attrib(1, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
   ebo->set_data(indices.data(), sizeof(GLuint) * indices.size());
   glDrawElements(GL_LINES, (GLsizei)indices.size(), GL_UNSIGNED_INT, nullptr);
 }

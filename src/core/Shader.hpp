@@ -9,6 +9,7 @@
 class Shader : public OpenGLObject
 {
 public:
+  static GLuint last_bind;
   OnlyMovable(Shader)
   Shader() = default;
   Shader(const char* vertex_file, const char* fragment_file);

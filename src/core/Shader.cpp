@@ -22,6 +22,8 @@ static bool read_shader_file_content(const char* const file, std::string& conten
   return false;
 }
 
+GLuint Shader::last_bind = 0;
+
 Shader::Shader(const char* vertex_file, const char* fragment_file) 
 {
   load(vertex_file, fragment_file);
@@ -93,6 +95,7 @@ void Shader::set_float(const char* uniform_name, float value)
 
 void Shader::bind() const 
 {
+  last_bind = m_id;
   glUseProgram(m_id);
 }
 

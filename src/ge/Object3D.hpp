@@ -9,6 +9,7 @@
 #include "./core/Shader.hpp"
 #include "./core/GPUBuffers.hpp"
 #include "./core/Texture2D.hpp"
+#include "./core/ShaderStorage.hpp"
 #include "./ge/IDrawable.hpp"
 #include "./ge/Mesh.hpp"
 #include "./ge/BoundingBox.hpp"
@@ -110,7 +111,10 @@ protected:
   Object3D(Object3D&&) = default;
   Object3D& operator=(const Object3D&) = default;
   Object3D& operator=(Object3D&&) = default;
+  template<typename Func, typename Class, typename... Args>
+  void render_lines_and_reset_shader(Func f, Class* self, Args&&... args);
   void render(GPUBuffers*, const RenderConfig&);
+  void render_normals(GPUBuffers*, const Mesh& mesh);
   void calc_normals(Mesh&, ShadingMode);
   void set_flag(Flag flag, bool value) { value ? set_flag(flag) : clear_flag(flag); }
   void set_flag(Flag flag) { m_flags |= flag; }
@@ -131,3 +135,18 @@ protected:
   BoundingBox m_bbox;             // bounding box which covers all meshes
   std::map<ShadingMode, std::vector<Mesh>> m_cached_meshes;
 };
+
+template<typename Func, typename Class, typename... Args>
+void Object3D::render_lines_and_reset_shader(Func f, Class* self, Args&&... args)
+{
+  using namespace GlobalState;
+  // get current active shader to activate it again afterwards
+  Shader* pshader = ShaderStorage::get(Shader::last_bind);
+  assert(pshader);
+  Shader& lines_shader = ShaderStorage::get(ShaderStorage::ShaderType::LINES);
+  lines_shader.bind();
+  (self->*f)(std::forward<Args>(args)...);
+  lines_shader.unbind();
+  pshader->bind();
+}
+

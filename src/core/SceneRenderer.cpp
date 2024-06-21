@@ -25,6 +25,7 @@
 #include "KeyboardHandler.hpp"
 #include "CursorPositionHandler.hpp"
 #include "MouseInputHandler.hpp"
+#include "ShaderStorage.hpp"
 #include "./ge/Cube.hpp"
 #include "./ge/Icosahedron.hpp"
 #include "./ge/Polyline.hpp"
@@ -34,6 +35,8 @@
 
 static void setup_opengl();
 static void get_desktop_resolution(int& horizontal, int& vertical);
+
+using namespace GlobalState;
 
 SceneRenderer::SceneRenderer()
 {
@@ -45,15 +48,12 @@ SceneRenderer::SceneRenderer()
   m_window = std::make_unique<MainWindow>(w, h, "MainWindow");
   m_gpu_buffers = std::make_unique<GPUBuffers>();
   m_ui = std::make_unique<Ui>(*this, m_window.get());
-  m_main_shader.load("./src/glsl/shader.vert", "./src/glsl/shader.frag");
-  m_outlining_shader.load("./src/glsl/outlining.vert", "./src/glsl/outlining.frag");
-  m_skybox_shader.load("./src/glsl/skybox.vert", "./src/glsl/skybox.frag");
-  m_fbo_default_shader.load("./src/glsl/fbo_default_shader.vert", "./src/glsl/fbo_default_shader.frag");
-  m_picking_shader.load("./src/glsl/picking_fbo.vert", "./src/glsl/picking_fbo.frag");
   m_camera.set_position(glm::vec3(-4.f, 2.f, 3.f));
   m_camera.look_at(glm::vec3(2.f, 0.5f, 0.5f));
   m_projection_mat = glm::mat4(1.f);
   m_projection_mat = glm::perspective(glm::radians(45.f), (float)m_window->width() / m_window->height(), 0.1f, 100.f);
+
+  ShaderStorage::init();
 
   auto main_scene_fbo = FrameBufferObject();
   main_scene_fbo.bind();
@@ -102,6 +102,11 @@ void SceneRenderer::render()
   };
   Skybox skybox(Cubemap(std::move(skybox_faces)));
 
+  Shader& picking_shader = ShaderStorage::get(ShaderStorage::PICKING);
+  Shader& main_shader = ShaderStorage::get(ShaderStorage::MAIN);
+  Shader& skybox_shader = ShaderStorage::get(ShaderStorage::SKYBOX);
+  Shader& fbo_default_shader = ShaderStorage::get(ShaderStorage::FBO_DEFAULT);
+
   while (!glfwWindowShouldClose(gl_window))
   {
     glfwPollEvents();
@@ -113,8 +118,8 @@ void SceneRenderer::render()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    m_picking_shader.bind();
-    render_scene(m_picking_shader, /*assignIndices*/true);
+    picking_shader.bind();
+    render_scene(picking_shader, /*assignIndices*/true);
     picking_fbo.unbind();
 
     // render to a custom framebuffer
@@ -122,16 +127,16 @@ void SceneRenderer::render()
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    m_main_shader.bind();
+    main_shader.bind();
     // render scene before gui to make sure that imgui window always will be on top of drawn entities
-    render_scene(m_main_shader);
+    render_scene(main_shader);
     // render skybox
     glDepthFunc(GL_LEQUAL);
-    m_skybox_shader.bind();
-    m_skybox_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
-    m_skybox_shader.set_matrix4f("projectionMatrix", m_projection_mat);
+    skybox_shader.bind();
+    skybox_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
+    skybox_shader.set_matrix4f("projectionMatrix", m_projection_mat);
     skybox.render(m_gpu_buffers.get());
-    m_skybox_shader.unbind();
+    skybox_shader.unbind();
     glDepthFunc(GL_LESS);
     m_ui->render();
     main_fbo.unbind();
@@ -139,7 +144,7 @@ void SceneRenderer::render()
     // set GL_FILL mode because next we are rendering texture
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDisable(GL_DEPTH_TEST);
-    m_fbo_default_shader.bind();
+    fbo_default_shader.bind();
     screen_quad.render(m_gpu_buffers.get());
 
     glfwSwapBuffers(gl_window);
@@ -156,7 +161,6 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     Object3D* pobj = m_drawables[i].get();
     IDrawable* pdrawable = static_cast<IDrawable*>(pobj);
     shader.set_matrix4f("modelMatrix", pobj->model_matrix());
-
     shader.set_bool("applyTexture", pobj->has_active_texture());
     shader.set_bool("applyShading", pobj->m_shading_mode != Object3D::ShadingMode::NO_SHADING && !pobj->is_light_source());
     if (pobj->is_rotating())
@@ -172,6 +176,17 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
     if (assignIndices)
     {
       shader.set_uint("objectIndex", i + 1);
+    }
+    // setup shader for drawing lines
+    if (pobj->is_bbox_visible() || pobj->is_normals_visible())
+    {
+      Shader& sh = ShaderStorage::get(ShaderStorage::ShaderType::LINES);
+      sh.bind();
+      sh.set_matrix4f("viewMatrix", m_camera.view_matrix());
+      sh.set_matrix4f("projectionMatrix", m_projection_mat);
+      sh.set_matrix4f("modelMatrix", pobj->model_matrix());
+      sh.unbind();
+      shader.bind();
     }
     // !assignIndices is a temp workaround to avoid crash when selecting same object twice,
     // because render outlining color to the picking FBO will overwrite assigned object index before
@@ -197,10 +212,11 @@ void SceneRenderer::render_scene(Shader& shader, bool assignIndices)
         pobj->apply_shading(Object3D::ShadingMode::SMOOTH_SHADING);
       pobj->visible_normals(false);
 
-      m_outlining_shader.bind();
-      m_outlining_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
-      m_outlining_shader.set_matrix4f("projectionMatrix", m_projection_mat);
-      m_outlining_shader.set_matrix4f("modelMatrix", pobj->model_matrix());
+      Shader& outlining_shader = ShaderStorage::get(ShaderStorage::OUTLINING);
+      outlining_shader.bind();
+      outlining_shader.set_matrix4f("viewMatrix", m_camera.view_matrix());
+      outlining_shader.set_matrix4f("projectionMatrix", m_projection_mat);
+      outlining_shader.set_matrix4f("modelMatrix", pobj->model_matrix());
       pdrawable->render(m_gpu_buffers.get());
 
       glStencilFunc(GL_ALWAYS, 0, 0xFF);

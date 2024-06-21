@@ -86,7 +86,6 @@ void Icosahedron::subdivide_triangles(int subdivision_depth) {
     GLuint index3 = faces[i].data[2];
     subdivide_triangles(subdivision_depth, vertices[index], vertices[index2], vertices[index3]);
   }
-  //m_cached_meshes[0] = mesh;
 }
 
 void Icosahedron::allocate_memory_before_subdivision(int subdivision_depth, int face_count) {

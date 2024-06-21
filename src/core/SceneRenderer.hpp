@@ -36,11 +36,6 @@ private:
   std::unique_ptr<MainWindow> m_window;
   std::unique_ptr<GPUBuffers> m_gpu_buffers;
   std::unique_ptr<Ui> m_ui;
-  Shader m_main_shader;
-  Shader m_outlining_shader;
-  Shader m_skybox_shader;
-  Shader m_fbo_default_shader;
-  Shader m_picking_shader;
   Camera m_camera;
   std::map<std::string, FrameBufferObject> m_fbos;
   glm::mat4 m_projection_mat;

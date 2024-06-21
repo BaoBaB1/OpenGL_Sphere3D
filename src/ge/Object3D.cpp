@@ -43,35 +43,16 @@ void Object3D::render(GPUBuffers* gpu_buffers, const RenderConfig& cfg)
 
     if (is_normals_visible())
     {
-      // normals without shading
-      GLint current_shader_id = 0;
-      glGetIntegerv(GL_CURRENT_PROGRAM, &current_shader_id);
-      assert(current_shader_id != 0);
-      glUniform1i(glGetUniformLocation(current_shader_id, "applyShading"), false);
-      glUniform1i(glGetUniformLocation(current_shader_id, "applyTexture"), false);
-
-      std::vector<Vertex> normals;
-      if (get_flag(RESET_CACHED_NORMALS))
-      {
-        normals = normals_as_lines(mesh);
-        const_cast<Mesh&>(mesh).m_cached_normals = normals;
-      }
-      else
-      {
-        normals = mesh.m_cached_normals;
-      }
-      vbo->set_data(normals.data(), sizeof(Vertex) * normals.size());
-      vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
-      vao->link_attrib(2, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
-      glDrawArrays(GL_LINES, 0, (GLsizei)normals.size());
-    }
-    if (is_bbox_visible())
-    {
-      m_bbox.render(gpu_buffers);
+      render_lines_and_reset_shader(&Object3D::render_normals, this, gpu_buffers, mesh);
     }
   }
 
-  // normal lines recalculated in loop above
+  if (is_bbox_visible())
+  {
+    render_lines_and_reset_shader(&BoundingBox::render, &m_bbox, gpu_buffers);
+  }
+
+  // normal lines are recalculated in Object3D::render_normals
   if (is_normals_visible() && get_flag(RESET_CACHED_NORMALS))
   {
     set_flag(RESET_CACHED_NORMALS, false);
@@ -377,5 +358,25 @@ void Object3D::calc_normals(Mesh& mesh, ShadingMode mode)
   for (Vertex& v : vertices)
     if (v.normal != glm::vec3())
       v.normal = glm::normalize(v.normal);
+}
+
+void Object3D::render_normals(GPUBuffers* buffers, const Mesh& mesh)
+{
+  auto& vbo = buffers->vbo;
+  auto& vao = buffers->vao;
+  std::vector<Vertex> normals;
+  if (get_flag(RESET_CACHED_NORMALS))
+  {
+    normals = normals_as_lines(mesh);
+    const_cast<Mesh&>(mesh).m_cached_normals = normals;
+  }
+  else
+  {
+    normals = mesh.m_cached_normals;
+  }
+  vbo->set_data(normals.data(), sizeof(Vertex) * normals.size());
+  vao->link_attrib(0, 3, GL_FLOAT, sizeof(Vertex), nullptr);                      // position
+  vao->link_attrib(1, 4, GL_FLOAT, sizeof(Vertex), (void*)(sizeof(GLfloat) * 6)); // color
+  glDrawArrays(GL_LINES, 0, (GLsizei)normals.size());
 }
 
