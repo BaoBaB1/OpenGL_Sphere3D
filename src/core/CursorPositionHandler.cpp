@@ -2,6 +2,8 @@
 #include "SceneRenderer.hpp"
 #include "MainWindow.hpp"
 
+extern int ignore_frames;
+
 CursorPositionHandler::CursorPositionHandler(MainWindow* window) : UserInputHandler(window, HandlerType::CURSOR_POSITION)
 {
   auto callback = [](GLFWwindow* window, double xpos, double ypos)
@@ -18,6 +20,13 @@ void CursorPositionHandler::callback(double xpos, double ypos)
 {
   if (!m_disabled)
   {
+    // workaround for large x,y offsets after window gets focus. seems to be a glfw bug
+    // https://github.com/glfw/glfw/issues/2523
+    if (ignore_frames > 0)
+    {
+      --ignore_frames;
+      return;
+    }
     m_prev_pos[0] = m_cur_pos[0];
     m_prev_pos[1] = m_cur_pos[1];
     m_cur_pos[0] = xpos;

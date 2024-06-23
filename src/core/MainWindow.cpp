@@ -4,6 +4,16 @@
 #include "MouseInputHandler.hpp"
 #include "Debug.hpp"
 
+extern int ignore_frames = 3;
+
+static void window_focus_callback(GLFWwindow* window, int focused)
+{
+  if (focused)
+  {
+    ignore_frames = 3;
+  }
+}
+
 MainWindow::MainWindow(int width, int height, const char* title) :
   m_width(width), m_height(height), m_title(title)
 {
@@ -24,6 +34,7 @@ MainWindow::MainWindow(int width, int height, const char* title) :
   m_input_handlers.push_back(std::make_unique<MouseInputHandler>(this));
   glfwMakeContextCurrent(m_window);
   glfwSetWindowSizeLimits(m_window, 1024, 768, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  glfwSetWindowFocusCallback(m_window, window_focus_callback);
   gladLoadGL();
   glViewport(0, 0, m_width, m_height);
 }
