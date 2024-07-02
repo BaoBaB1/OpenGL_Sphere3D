@@ -41,8 +41,7 @@ void MouseInputHandler::left_btn_click_callback(GLFWwindow* window, int button, 
       {
         std::cout << "Pixel " << x << ',' << y << " object id = " << id[0] << '\n';
         int index = (int)id[0] - 1;
-        const auto& clicked_obj = scene.m_drawables[index];
-        clicked_obj->select(true);
+        scene.select_object(index);
       }
       glReadBuffer(0);
       picking_fbo.unbind();
@@ -52,6 +51,9 @@ void MouseInputHandler::left_btn_click_callback(GLFWwindow* window, int button, 
 
 void MouseInputHandler::window_size_change_callback(GLFWwindow* window, int width, int height)
 {
+  // to avoid crash when window is completely minimized
+  if (width == 0 || height == 0)
+    return;
   auto& s = Singleton<SceneRenderer>::instance();
   s.m_window->set_width(width);
   s.m_window->set_height(height);

@@ -4,6 +4,7 @@
 
 class SceneRenderer;
 class MainWindow;
+class Object3D;
 
 class Ui
 {
@@ -11,10 +12,11 @@ public:
   Ui(SceneRenderer& scene, MainWindow* window);
   ~Ui();
   void render();
-  void on_open_file();
+private:
+  void render_object_properties(Object3D& drawable);
+  void render_xyz_markers(float offset_from_left, float width);
 private:
   std::array<bool, 16> m_imgui_statesb;
-  std::array<float, 16> m_imgui_statesf;
   MainWindow* m_window;
   SceneRenderer& m_scene;
 };

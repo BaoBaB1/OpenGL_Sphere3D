@@ -72,6 +72,7 @@ void BezierCurve::render(GPUBuffers* buffers)
           (3 * std::pow((1 - t), 2) * t * P1) +
           (3 * (1 - t) * t * t * P2) +
           (std::pow(t, 3) * P3);
+        res.color = m_color;
         vertices.push_back(res);
       }
     }

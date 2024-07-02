@@ -26,6 +26,7 @@ private:
   void handle_input();
   void render_scene(Shader& shader, bool assignIndices = false);
   void create_scene();
+  void select_object(int index);  // temporary function. remove when selection of multiple elements is supported
   void new_frame_update();
   friend class MouseInputHandler;
   friend class CursorPositionHandler;
@@ -33,6 +34,7 @@ private:
   friend class Ui;
 private:
   std::vector<std::unique_ptr<Object3D>> m_drawables;
+  std::vector<int> m_selected_objects;
   std::unique_ptr<MainWindow> m_window;
   std::unique_ptr<GPUBuffers> m_gpu_buffers;
   std::unique_ptr<Ui> m_ui;

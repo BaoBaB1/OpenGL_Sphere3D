@@ -12,6 +12,7 @@
 #include "SceneRenderer.hpp"
 #include "MainWindow.hpp"
 #include "ModelLoader.hpp"
+#include "./ge/Object3D.hpp"
 
 #include <vector>
 #include <string>
@@ -33,7 +34,6 @@ Ui::Ui(SceneRenderer& scene, MainWindow* window) : m_scene(scene), m_window(wind
   }
 
   m_imgui_statesb.fill(false);
-  m_imgui_statesf.fill(0.f);
 }
 
 Ui::~Ui()
@@ -51,21 +51,19 @@ void Ui::render()
 
   bool& st_gui_opened = m_imgui_statesb[0];
   bool& st_polygone_mode = m_imgui_statesb[1];
-  bool& st_is_rotating = m_imgui_statesb[2];
-  bool& st_is_bbox_visible = m_imgui_statesb[3];
-  bool& st_is_normals_visible = m_imgui_statesb[4];
-  bool& st_selected_shading_mode = m_imgui_statesb[5];
-  bool& st_file_selection = m_imgui_statesb[6];
-
-  float& st_translation_x = m_imgui_statesf[0];
-  float& st_translation_y = m_imgui_statesf[1];
-  float& st_translation_z = m_imgui_statesf[2];
-
+  bool& st_file_selection = m_imgui_statesb[2];
   auto& scene = m_scene;
 
   // menu bar
+  constexpr ImVec2 menubar_frame_padding = ImVec2(0, 10);
+  constexpr ImVec2 menubar_item_spacing = ImVec2(29, 10);
+  ImVec2 menubar_size;
+
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, menubar_frame_padding);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, menubar_item_spacing);
   if (ImGui::BeginMainMenuBar())
   {
+    menubar_size = ImGui::GetWindowSize();
     if (ImGui::BeginMenu("File"))
     {
       if (ImGui::MenuItem("Load", nullptr, &st_file_selection))
@@ -75,6 +73,8 @@ void Ui::render()
     }
     ImGui::EndMainMenuBar();
   }
+  ImGui::PopStyleVar();
+  ImGui::PopStyleVar();
 
   // file selection mode
   if (st_file_selection)
@@ -119,18 +119,54 @@ void Ui::render()
   if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_GraveAccent))
   {
     st_gui_opened = !st_gui_opened;
-    const bool enable = !st_gui_opened;
-    m_window->notify_all(enable);
     if (st_gui_opened)
+    {
       glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      // disable everything except mouse clicks to enable object selection in editing mode
+      for (auto& handler : m_window->input_handlers()) {
+        if (handler->type() != UserInputHandler::MOUSE_INPUT) {
+          m_window->notify(handler.get(), false);
+        }
+      }
+    }
     else
+    {
+      m_window->notify_all(true);
       glfwSetInputMode(m_window->gl_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
   }
 
   if (st_gui_opened)
   {
-    ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    if (ImGui::CollapsingHeader("Configuration"))
+    // stick menu to the right side of window
+    const ImVec2 sz = ImVec2(m_window->width(), m_window->height());
+    constexpr float scale_factor = 0.2f;
+    ImGui::SetNextWindowSize(ImVec2(sz.x * scale_factor, sz.y - menubar_size.y - 1));
+    ImGui::SetNextWindowPos(ImVec2(sz.x - sz.x * scale_factor - 8, menubar_size.y - 1));
+    ImGui::Begin("Scene properties", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::Text("Scene objects");
+    ImGui::PushItemWidth(-1);
+    if (ImGui::BeginListBox("##ListBox"))
+    {
+      int idx = 0;
+      for (const auto& obj : scene.m_drawables)
+      {
+        bool selected = obj->is_selected();
+        if (ImGui::Selectable((obj->name() + std::to_string(idx + 1)).c_str(), &selected))
+        {
+          scene.select_object(idx);
+        }
+        ++idx;
+      }
+      ImGui::EndListBox();
+    }
+    ImGui::PopItemWidth();
+    ImGui::Separator();
+    ImGui::Dummy(ImVec2(0, 5));
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_::ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("General"))
     {
       if (ImGui::Checkbox("Don't fill polygons", &st_polygone_mode))
       {
@@ -141,127 +177,200 @@ void Ui::render()
           scene.m_polygon_mode = GL_LINE;
       }
     }
-    if (ImGui::CollapsingHeader("Objects"))
+
+    if (scene.m_selected_objects.size())
     {
-      size_t id = 1;
-      for (const auto& drawable : scene.m_drawables)
-      {
-        std::string name = drawable->name() + std::to_string(id++);
-        if (ImGui::TreeNode(name.c_str()))
-        {
-          float len = ImGui::GetWindowSize().x;
-          // multiply by 3 because 'nesting' level is 3.
-          float indent = ImGui::GetStyle().IndentSpacing * 3;
-          indent += ImGui::CalcTextSize("X").x;
-          indent += ImGui::CalcTextSize("Y").x;
-          indent += ImGui::CalcTextSize("Z").x;
-          len -= indent;
-          ImGui::PushItemWidth(len / 3);
-
-          ImGui::Separator();
-          ImGui::Text("Translation");
-          st_translation_x = drawable->m_translation.x;
-          st_translation_y = drawable->m_translation.y;
-          st_translation_z = drawable->m_translation.z;
-          if (ImGui::SliderFloat("X", &st_translation_x, -10.0f, 10.0f))
-            // prev = drawable->m_translation.x; curr = g_floats[0]; diff = curr - prev
-            drawable->translate(glm::vec3(st_translation_x - drawable->m_translation.x, 0.f, 0.f));
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y", &st_translation_y, -10.0f, 10.0f))
-            drawable->translate(glm::vec3(0.f, st_translation_y - drawable->m_translation.y, 0.f));
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z", &st_translation_z, -10.0f, 10.0f))
-            drawable->translate(glm::vec3(0.f, 0.f, st_translation_z - drawable->m_translation.z));
-          ImGui::Separator();
-
-          ImGui::Text("Scale");
-          if (ImGui::SliderFloat("X##2", &drawable->m_scale.x, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y##2", &drawable->m_scale.y, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z##2", &drawable->m_scale.z, 0.1f, 3.f))
-            drawable->scale(drawable->m_scale);
-          ImGui::Separator();
-
-          ImGui::Text("Rotation");
-          st_is_rotating = drawable->is_rotating();
-          if (ImGui::Checkbox("Rotating", &st_is_rotating))
-            drawable->rotating(st_is_rotating);
-          if (ImGui::SliderAngle("Angle", &drawable->m_rotation_angle))
-          {
-            // if is_rotating == true, then rotation is made every frame in Object3D::render_geom()
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          if (ImGui::SliderFloat("X##3", &drawable->m_rotation_axis.x, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Y##3", &drawable->m_rotation_axis.y, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::SameLine();
-          if (ImGui::SliderFloat("Z##3", &drawable->m_rotation_axis.z, 0.f, 1.f))
-          {
-            if (!drawable->is_rotating())
-              drawable->rotate(drawable->m_rotation_angle, drawable->m_rotation_axis);
-          }
-          ImGui::Separator();
-
-          ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.65f);
-          ImGui::Text("Color");
-          if (ImGui::ColorEdit4("Choose color", &drawable->m_color.x))
-            drawable->set_color(drawable->m_color);
-          ImGui::Separator();
-
-          ImGui::SameLine();
-          st_is_bbox_visible = drawable->is_bbox_visible();
-          if (ImGui::Checkbox("Show bounding box", &st_is_bbox_visible))
-            drawable->visible_bbox(st_is_bbox_visible);
-
-          // TODO: rewrite later as e.g. 2D Circle has surface but it won't be derived from Model class
-          if (drawable->has_surface())
-          {
-            st_is_normals_visible = drawable->is_normals_visible();
-            if (ImGui::Checkbox("Visible normals", &st_is_normals_visible))
-              drawable->visible_normals(st_is_normals_visible);
-            std::vector<std::pair<Object3D::ShadingMode, std::string>> modes(3);
-            for (int i = 0; i < 3; i++)
-            {
-              Object3D::ShadingMode mode = static_cast<Object3D::ShadingMode>(i);
-              modes[i] = std::make_pair(mode, ::shading_mode_to_str(mode));
-            }
-            std::string current_mode = ::shading_mode_to_str(drawable->shading_mode());
-            if (ImGui::BeginCombo("Shading mode", current_mode.c_str()))
-            {
-              for (int i = 0; i < 3; i++)
-              {
-                st_selected_shading_mode = (current_mode == modes[i].second);
-                if (ImGui::Selectable(modes[i].second.c_str(), st_selected_shading_mode))
-                  drawable->apply_shading(modes[i].first);
-                if (st_selected_shading_mode)
-                  ImGui::SetItemDefaultFocus();
-              }
-              ImGui::EndCombo();
-            }
-            ImGui::Separator();
-          }
-          ImGui::TreePop();
-        }
-      }
+      const int idx = scene.m_selected_objects.back();
+      render_object_properties(*scene.m_drawables[idx]);
     }
+
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::End();
   }
+
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Ui::render_object_properties(Object3D& drawable)
+{
+  ImGui::SetNextItemOpen(true, ImGuiCond_::ImGuiCond_Once);
+  std::string name = drawable.name();
+  if (ImGui::TreeNode(name.c_str()))
+  {
+    // translation
+    ImGui::Separator();
+    ImGui::Text("Translation");
+    ImGui::PushItemWidth(-1);
+    const float item_width = ImGui::CalcItemWidth() - 5; // -5 to leave some offset from right
+    ImGui::PopItemWidth();
+    const float offset_from_left = ImGui::GetStyle().IndentSpacing;
+    const float win_space_for_items_x = ImGui::GetWindowSize().x - offset_from_left;
+
+    render_xyz_markers(offset_from_left, win_space_for_items_x);
+    ImGui::PushItemWidth(-1);
+    glm::vec3 old_translation = drawable.m_translation;
+    if (ImGui::InputFloat3("##translationLabel", &drawable.m_translation.x))
+    {
+      drawable.translate(drawable.m_translation - old_translation);
+    }
+    ImGui::PopItemWidth();
+    ImGui::Dummy(ImVec2(0.f, 5.f));
+    ImGui::GetStyle().ItemSpacing.x = 3.f;
+    ImGui::PushItemWidth(item_width / 3);
+
+    if (ImGui::SliderFloat("##X", &drawable.m_translation.x, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(drawable.m_translation.x - old_translation.x, 0.f, 0.f));
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Y", &drawable.m_translation.y, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(0.f, drawable.m_translation.y - old_translation.y, 0.f));
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Z", &drawable.m_translation.z, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(0.f, 0.f, drawable.m_translation.z - old_translation.z));
+
+    // scale
+    ImGui::Separator();
+    ImGui::Text("Scale");
+    render_xyz_markers(offset_from_left, win_space_for_items_x);
+    ImGui::PushItemWidth(-1);
+    glm::vec3 scale = drawable.m_scale;
+    if (ImGui::InputFloat3("##scaleLabel", &scale.x))
+    {
+      if (scale.x > 0 && scale.y > 0 && scale.z > 0)
+        drawable.scale(scale);
+    }
+    ImGui::PopItemWidth();
+    ImGui::Dummy(ImVec2(0, 5));
+    ImGui::PushItemWidth(item_width / 3);
+
+    if (ImGui::SliderFloat("##X2", &drawable.m_scale.x, 0.1f, 3.f))
+      drawable.scale(drawable.m_scale);
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Y2", &drawable.m_scale.y, 0.1f, 3.f))
+      drawable.scale(drawable.m_scale);
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Z2", &drawable.m_scale.z, 0.1f, 3.f))
+      drawable.scale(drawable.m_scale);
+    ImGui::PopItemWidth();
+
+    // rotation
+    ImGui::Separator();
+    ImGui::Text("Rotation");
+    bool rotating = drawable.is_rotating();
+    float old_rot_angle = drawable.m_rotation_angle;
+
+    // TODO: rework rotations
+    if (ImGui::Checkbox("Rotate every frame", &rotating))
+      drawable.rotating(rotating);
+
+    if (ImGui::SliderFloat("Angle(deg)", &drawable.m_rotation_angle, -360.f, 360.f))
+    {
+      if (!drawable.is_rotating())
+        drawable.rotate(drawable.m_rotation_angle - old_rot_angle, drawable.m_rotation_axis);
+    }
+
+    render_xyz_markers(offset_from_left, win_space_for_items_x);
+    if (ImGui::SliderFloat("##X3", &drawable.m_rotation_axis.x, 0.f, 1.f))
+    {
+      if (!drawable.is_rotating())
+        drawable.rotate(drawable.m_rotation_angle, drawable.m_rotation_axis);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Y3", &drawable.m_rotation_axis.y, 0.f, 1.f))
+    {
+      if (!drawable.is_rotating())
+        drawable.rotate(drawable.m_rotation_angle, drawable.m_rotation_axis);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::SliderFloat("##Z3", &drawable.m_rotation_axis.z, 0.f, 1.f))
+    {
+      if (!drawable.is_rotating())
+        drawable.rotate(drawable.m_rotation_angle, drawable.m_rotation_axis);
+    }
+
+    // other properties
+    ImGui::Separator();
+    ImGui::PushItemWidth(-1);
+    ImGui::Text("Color");
+    if (ImGui::ColorEdit4("Choose color", &drawable.m_color.x))
+      drawable.set_color(drawable.m_color);
+    ImGui::PopItemWidth();
+
+    ImGui::Dummy(ImVec2(0, 10));
+    ImGui::Text("Miscellaneous");
+    bool is_bbox_visible = drawable.is_bbox_visible();
+    if (ImGui::Checkbox("Show bounding box", &is_bbox_visible))
+      drawable.visible_bbox(is_bbox_visible);
+
+    // TODO: rewrite later as e.g. 2D Circle has surface but it won't be derived from Model class
+    if (drawable.has_surface())
+    {
+      // calc size of next checkbox, if it fits width of properties window, put it on same line,
+      // othewise, put on other line
+      const auto next_line_cursor_pos = ImGui::GetCursorPos();
+      ImGui::SameLine();
+      const auto same_line_cursor_pos = ImGui::GetCursorPos();
+      const float width_of_next_checkbox = ImGui::CalcTextSize("Visible normals").x
+        + ImGui::GetFrameHeight() + ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
+      constexpr float x_offset = 25;
+      if (same_line_cursor_pos.x + x_offset + width_of_next_checkbox > win_space_for_items_x)
+      {
+        ImGui::SetCursorPos(next_line_cursor_pos);
+      }
+      else {
+        ImGui::Dummy(ImVec2(x_offset, 0));
+        ImGui::SameLine();
+      }
+
+      bool is_normals_visible = drawable.is_normals_visible();
+      if (ImGui::Checkbox("Visible normals", &is_normals_visible))
+        drawable.visible_normals(is_normals_visible);
+
+      // shading modes
+      std::vector<std::pair<Object3D::ShadingMode, std::string>> modes(3);
+      for (int i = 0; i < 3; i++)
+      {
+        Object3D::ShadingMode mode = static_cast<Object3D::ShadingMode>(i);
+        modes[i] = std::make_pair(mode, ::shading_mode_to_str(mode));
+      }
+      std::string current_mode = ::shading_mode_to_str(drawable.shading_mode());
+      ImGui::SetNextItemWidth(win_space_for_items_x / 2);
+      if (ImGui::BeginCombo("Shading mode", current_mode.c_str()))
+      {
+        for (int i = 0; i < 3; i++)
+        {
+          bool selected = (current_mode == modes[i].second);
+          if (ImGui::Selectable(modes[i].second.c_str(), &selected))
+            drawable.apply_shading(modes[i].first);
+          if (selected)
+            ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+      }
+      ImGui::Separator();
+    }
+    ImGui::TreePop();
+  }
+}
+
+void Ui::render_xyz_markers(float offset_from_left, float width)
+{
+  constexpr const char* XYZ[] = { "X", "Y", "Z" };
+  for (int i = 0; i < 3; i++)
+  {
+    // center labels over input fields
+    ImGui::SetCursorPosX(offset_from_left + (width / 3 * i) + width / 6);
+    ImGui::Text(XYZ[i]);
+    if (i < 2)
+      ImGui::SameLine();
+  }
 }
 
 static std::string shading_mode_to_str(Object3D::ShadingMode mode)

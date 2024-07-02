@@ -65,14 +65,9 @@ void Object3D::rotate(float angle, const glm::vec3& axis)
 {
   if (axis == glm::vec3())
     return;
-  m_rotation_angle = angle;
-  m_rotation_axis = axis;
-  constexpr float rotation_speed = 90.f;
-  if (angle != 0.f)
-  {
-    set_flag(RESET_CACHED_NORMALS, true);
-    m_model_mat = glm::rotate(m_model_mat, glm::radians(angle * m_delta_time * rotation_speed), axis);
-  }
+  constexpr float rotation_speed = 10.f;
+  set_flag(RESET_CACHED_NORMALS, true);
+  m_model_mat = glm::rotate(m_model_mat, glm::radians(angle * m_delta_time * rotation_speed), glm::normalize(axis));
 }
 
 void Object3D::scale(const glm::vec3& scale)

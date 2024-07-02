@@ -299,8 +299,22 @@ void SceneRenderer::create_scene()
   bc2->set_start_point(Vertex());
   bc2->set_end_point(Vertex(0.f, 0.f, -2.5f));
   bc2->set_control_points({ Vertex(0.f, 2.f, -1.25f), Vertex {0.f, -2.f, -1.75} });
-  bc2->set_color(glm::vec4(1.f, 0.f, 0.f, 1.f));
   m_drawables.push_back(std::move(bc2));
+}
+
+void SceneRenderer::select_object(int index)
+{
+  if (m_drawables[index]->is_selected())
+    return;
+  // for now support only single object selection
+  assert(m_selected_objects.size() == 0 || m_selected_objects.size() == 1);
+  if (m_selected_objects.size())
+  {
+    m_drawables[m_selected_objects.back()]->select(false);
+    m_selected_objects.pop_back();
+  }
+  m_selected_objects.push_back(index);
+  m_drawables[index]->select(true);
 }
 
 void SceneRenderer::new_frame_update()
@@ -347,9 +361,11 @@ void SceneRenderer::handle_input()
   }
   if (kh->get_keystate(InputKey::ESC) == KeyboardHandler::PRESSED)
   {
-    for (auto& drawable : m_drawables)
+    for (int idx : m_selected_objects)
     {
-      drawable->select(false);
+      assert(m_selected_objects.size() == 1);
+      m_selected_objects.pop_back();
+      m_drawables[idx]->select(false);
     }
   }
   if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::PRESSED)
