@@ -6,14 +6,14 @@ Cube::Cube()
   mesh.vertices().reserve(24);
   mesh.faces().reserve(12);
   for (int i = 0; i < 3; ++i) {
-    mesh.append_vertex(Vertex(0.f, 0.f, 0.f)); 
-    mesh.append_vertex(Vertex(1.f, 0.f, 0.f)); 
-    mesh.append_vertex(Vertex(1.f, 1.f, 0.f)); 
-    mesh.append_vertex(Vertex(0.f, 1.f, 0.f)); 
-    mesh.append_vertex(Vertex(0.f, 0.f, 1.f));
-    mesh.append_vertex(Vertex(1.f, 0.f, 1.f));
-    mesh.append_vertex(Vertex(1.f, 1.f, 1.f));
-    mesh.append_vertex(Vertex(0.f, 1.f, 1.f));
+    mesh.append_vertex(Vertex(-0.5f, -0.5f, -0.5f));
+    mesh.append_vertex(Vertex(0.5f, -0.5f, -0.5f));
+    mesh.append_vertex(Vertex(0.5f, 0.5f, -0.5f));
+    mesh.append_vertex(Vertex(-0.5f, 0.5f, -0.5f)); 
+    mesh.append_vertex(Vertex(-0.5f, -0.5f, 0.5f));
+    mesh.append_vertex(Vertex(0.5f, -0.5f, 0.5f));
+    mesh.append_vertex(Vertex(0.5f, 0.5f, 0.5f));
+    mesh.append_vertex(Vertex(-0.5f, 0.5f, 0.5f));
   }
   // back
   mesh.append_face(Face{ 1, 0, 3 });
