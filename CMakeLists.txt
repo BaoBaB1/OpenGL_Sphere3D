@@ -52,6 +52,9 @@ target_include_directories("ImGuiFileDialog" PUBLIC ${FILE_DIALOG_PATH} ${IMGUI_
 set_target_properties("ImGuiFileDialog" PROPERTIES FOLDER ThirdParty)
 # --------ImGuiFileDialog--------
 
+# ImGuizmo
+include_directories("libs/ImGuizmo")
+# --------ImGuizmo--------
 
 # assimp
 include_directories(libs/assimp/include)
@@ -75,9 +78,12 @@ file(GLOB_RECURSE SOURCES
 	"src/*.hpp"
 	"src/*.cpp"
 	"libs/stb/stb_image.cpp"
+	"libs/ImGuizmo/ImGuizmo.h"
+	"libs/ImGuizmo/ImGuizmo.cpp"
 	)
 
 add_executable(${PROJECT_NAME} "src/core/OpenGLMain.cpp" ${SOURCES} ${SHADERS})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw imgui assimp ImGuiFileDialog)
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${ROOT_DIR})
 source_group("Resources" FILES ${SHADERS})

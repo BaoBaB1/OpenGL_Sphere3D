@@ -6,19 +6,24 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
+#include "glm/gtx/matrix_decompose.hpp"
 #include "ImGuiFileDialog.h"
+#include "ImGuizmo.h"
 
 #include "Ui.hpp"
 #include "SceneRenderer.hpp"
 #include "MainWindow.hpp"
 #include "ModelLoader.hpp"
 #include "./ge/Object3D.hpp"
+#include "KeyboardHandler.hpp"
 
 #include <vector>
 #include <string>
 
 static std::string shading_mode_to_str(Object3D::ShadingMode mode);
 static bool once = true;
+static glm::vec3 g_translation = {};
+static glm::vec3 g_scale = {};
 
 Ui::Ui(SceneRenderer& scene, MainWindow* window) : m_scene(scene), m_window(window)
 {
@@ -32,7 +37,7 @@ Ui::Ui(SceneRenderer& scene, MainWindow* window) : m_scene(scene), m_window(wind
     ImGui_ImplOpenGL3_Init();
     once = false;
   }
-
+  m_guizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
   m_imgui_statesb.fill(false);
 }
 
@@ -147,6 +152,63 @@ void Ui::render()
 
     ImGui::Text("Scene objects");
     ImGui::PushItemWidth(-1);
+
+    // Gizmo
+    if (!scene.m_selected_objects.empty())
+    {
+      KeyboardHandler* kh = nullptr;
+      for (const auto& h : m_window->input_handlers())
+      {
+        // TODO: add normal retrieval of handlers
+        if (h->type() == KeyboardHandler::KEYBOARD)
+        {
+          kh = static_cast<KeyboardHandler*>(h.get());
+          break;
+        }
+      }
+      assert(kh);
+
+      // default mode is translation
+      if (kh->get_keystate(KeyboardHandler::InputKey::T) == KeyboardHandler::KeyState::PRESSED)
+      {
+        m_guizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
+      }
+      else if (kh->get_keystate(KeyboardHandler::InputKey::R) == KeyboardHandler::KeyState::PRESSED)
+      {
+        m_guizmo_operation = ImGuizmo::OPERATION::ROTATE;
+      }
+      else if (kh->get_keystate(KeyboardHandler::InputKey::S) == KeyboardHandler::KeyState::PRESSED)
+      {
+        m_guizmo_operation = ImGuizmo::OPERATION::SCALE;
+      }
+
+      ImGuizmo::BeginFrame();
+      ImGuizmo::SetOrthographic(false);
+      ImGuizmo::SetRect(0, 0, m_scene.m_window->width(), m_scene.m_window->height());
+
+      const int idx = scene.m_selected_objects.back();
+      auto& obj = scene.m_drawables[idx];
+      Camera& cam = scene.m_camera;
+      ImGuizmo::MODE gizmo_mode = ImGuizmo::MODE::LOCAL;
+
+      glm::mat4 model_mat = obj->m_model_mat;
+      ImGuizmo::Manipulate(glm::value_ptr(cam.view_matrix()), glm::value_ptr(scene.m_projection_mat), static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
+        gizmo_mode, glm::value_ptr(model_mat));
+      if (ImGuizmo::IsUsing())
+      {
+        if (m_guizmo_operation == ImGuizmo::OPERATION::ROTATE)
+        {
+          glm::vec3 translation, scale, skew;
+          glm::quat rotation;
+          glm::vec4 perspective;
+          glm::decompose(model_mat, scale, rotation, translation, skew, perspective);
+          obj->m_rotation_angle = glm::degrees(glm::angle(rotation));
+          //obj->m_rotation_axis = glm::axis(rotation);
+        }
+        obj->m_model_mat = model_mat;
+      }
+    }
+
     if (ImGui::BeginListBox("##ListBox"))
     {
       int idx = 0;
@@ -210,33 +272,35 @@ void Ui::render_object_properties(Object3D& drawable)
 
     render_xyz_markers(offset_from_left, win_space_for_items_x);
     ImGui::PushItemWidth(-1);
-    glm::vec3 old_translation = drawable.m_translation;
-    if (ImGui::InputFloat3("##translationLabel", &drawable.m_translation.x))
+    g_translation = drawable.translation();
+    glm::vec3 old_translation = drawable.translation();
+    if (ImGui::InputFloat3("##translationLabel", &g_translation.x))
     {
-      drawable.translate(drawable.m_translation - old_translation);
+      drawable.translate(g_translation - old_translation);
     }
     ImGui::PopItemWidth();
     ImGui::Dummy(ImVec2(0.f, 5.f));
     ImGui::GetStyle().ItemSpacing.x = 3.f;
     ImGui::PushItemWidth(item_width / 3);
 
-    if (ImGui::SliderFloat("##X", &drawable.m_translation.x, -100.0f, 100.0f))
-      drawable.translate(glm::vec3(drawable.m_translation.x - old_translation.x, 0.f, 0.f));
+    if (ImGui::SliderFloat("##X", &g_translation.x, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(g_translation.x - old_translation.x, 0.f, 0.f));
 
     ImGui::SameLine();
-    if (ImGui::SliderFloat("##Y", &drawable.m_translation.y, -100.0f, 100.0f))
-      drawable.translate(glm::vec3(0.f, drawable.m_translation.y - old_translation.y, 0.f));
+    if (ImGui::SliderFloat("##Y", &g_translation.y, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(0.f, g_translation.y - old_translation.y, 0.f));
 
     ImGui::SameLine();
-    if (ImGui::SliderFloat("##Z", &drawable.m_translation.z, -100.0f, 100.0f))
-      drawable.translate(glm::vec3(0.f, 0.f, drawable.m_translation.z - old_translation.z));
+    if (ImGui::SliderFloat("##Z", &g_translation.z, -100.0f, 100.0f))
+      drawable.translate(glm::vec3(0.f, 0.f, g_translation.z - old_translation.z));
 
     // scale
     ImGui::Separator();
     ImGui::Text("Scale");
     render_xyz_markers(offset_from_left, win_space_for_items_x);
     ImGui::PushItemWidth(-1);
-    glm::vec3 scale = drawable.m_scale;
+    glm::vec3 scale = drawable.scale();
+    g_scale = drawable.scale();
     if (ImGui::InputFloat3("##scaleLabel", &scale.x))
     {
       if (scale.x > 0 && scale.y > 0 && scale.z > 0)
@@ -246,16 +310,16 @@ void Ui::render_object_properties(Object3D& drawable)
     ImGui::Dummy(ImVec2(0, 5));
     ImGui::PushItemWidth(item_width / 3);
 
-    if (ImGui::SliderFloat("##X2", &drawable.m_scale.x, 0.1f, 3.f))
-      drawable.scale(drawable.m_scale);
+    if (ImGui::SliderFloat("##X2", &g_scale.x, 0.1f, 3.f))
+      drawable.scale(g_scale);
 
     ImGui::SameLine();
-    if (ImGui::SliderFloat("##Y2", &drawable.m_scale.y, 0.1f, 3.f))
-      drawable.scale(drawable.m_scale);
+    if (ImGui::SliderFloat("##Y2", &g_scale.y, 0.1f, 3.f))
+      drawable.scale(g_scale);
 
     ImGui::SameLine();
-    if (ImGui::SliderFloat("##Z2", &drawable.m_scale.z, 0.1f, 3.f))
-      drawable.scale(drawable.m_scale);
+    if (ImGui::SliderFloat("##Z2", &g_scale.z, 0.1f, 3.f))
+      drawable.scale(g_scale);
     ImGui::PopItemWidth();
 
     // rotation

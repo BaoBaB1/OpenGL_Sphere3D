@@ -5,19 +5,21 @@
 class KeyboardHandler : public UserInputHandler 
 {
 public:
-  enum InputKey 
+  enum InputKey : uint16_t
   {
     W = GLFW_KEY_W,
     A = GLFW_KEY_A,
     S = GLFW_KEY_S,
     D = GLFW_KEY_D,
+    T = GLFW_KEY_T, 
+    R = GLFW_KEY_R,
     ARROW_UP = GLFW_KEY_UP,
     ARROW_DOWN = GLFW_KEY_DOWN,
     ARROW_LEFT = GLFW_KEY_LEFT,
     ARROW_RIGHT = GLFW_KEY_RIGHT,
     LEFT_SHIFT = GLFW_KEY_LEFT_SHIFT,
     ESC = GLFW_KEY_ESCAPE,
-    UNKNOWN = 0xFFFFFFFF
+    UNKNOWN = 0xFFFF
   };
 
   enum KeyState
@@ -29,7 +31,7 @@ public:
 
   static constexpr InputKey registered_keys[] = {
     W, A, S, D, ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, LEFT_SHIFT,
-    ESC
+    ESC, T, R
   };
 
   OnlyMovable(KeyboardHandler)

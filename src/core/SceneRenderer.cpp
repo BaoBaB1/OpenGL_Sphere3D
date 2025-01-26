@@ -41,8 +41,8 @@ using namespace GlobalState;
 SceneRenderer::SceneRenderer()
 {
   glfwInit();
-  int w, h;
-  get_desktop_resolution(w, h);
+  int w = 1600, h = 900;
+  //get_desktop_resolution(w, h);
 
   // fullscreen window
   m_window = std::make_unique<MainWindow>(w, h, "MainWindow");
@@ -268,21 +268,21 @@ void SceneRenderer::create_scene()
   m_drawables.push_back(std::move(sphere));
 
   std::unique_ptr<Cube> c = std::make_unique<Cube>();
-  c->translate(glm::vec3(0.5f, 0.f, 0.5f));
+  c->translate(glm::vec3(0.25f));
   c->scale(glm::vec3(0.5f));
   c->apply_shading(Object3D::ShadingMode::FLAT_SHADING);
   c->set_texture(".\\.\\src\\textures\\brick.jpg");
   m_drawables.push_back(std::move(c));
 
   std::unique_ptr<Cube> c2 = std::make_unique<Cube>();
-  c2->translate(glm::vec3(2.f, 0.f, 0.5f));
+  c2->translate(glm::vec3(1.25f, 1.f, 1.f));
   c2->set_color(glm::vec4(0.4f, 1.f, 0.4f, 1.f));
   c2->apply_shading(Object3D::ShadingMode::FLAT_SHADING);
   c2->visible_normals(true);
   m_drawables.push_back(std::move(c2));
 
   std::unique_ptr<Pyramid> pyr = std::make_unique<Pyramid>();
-  pyr->translate(glm::vec3(0.5f, 0.f, 2.f));
+  pyr->translate(glm::vec3(0.75f, 0.65f, 2.25f));
   pyr->scale(glm::vec3(0.5f));
   pyr->set_color(glm::vec4(0.976f, 0.212f, 0.98f, 1.f));
   pyr->apply_shading(Object3D::ShadingMode::FLAT_SHADING);

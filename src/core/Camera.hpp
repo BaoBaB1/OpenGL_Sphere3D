@@ -24,7 +24,7 @@ public:
   const float sensivity() const { return m_sensivity; }
   const float speed() const { return m_base_speed; }
   bool freezed() const { return m_freezed; }
-  glm::mat4 view_matrix();
+  glm::mat4 view_matrix() const;
   void freeze() { m_freezed = true; }
   void unfreeze() { m_freezed = false; }
   void set_position(const glm::vec3& position) { m_position = position; }

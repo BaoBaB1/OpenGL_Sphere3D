@@ -43,7 +43,7 @@ void Camera::scale_speed(float delta_time)
   m_actual_speed = m_base_speed * delta_time;
 }
 
-glm::mat4 Camera::view_matrix() 
+glm::mat4 Camera::view_matrix() const
 {
   return glm::lookAt(m_position, m_position + m_target, m_up);
 }

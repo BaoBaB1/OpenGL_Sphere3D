@@ -67,6 +67,8 @@ void Object3D::rotate(float angle, const glm::vec3& axis)
     return;
   constexpr float rotation_speed = 10.f;
   set_flag(RESET_CACHED_NORMALS, true);
+  m_rotation_angle = angle;
+  m_rotation_axis = axis;
   m_model_mat = glm::rotate(m_model_mat, glm::radians(angle * m_delta_time * rotation_speed), glm::normalize(axis));
 }
 
@@ -75,14 +77,12 @@ void Object3D::scale(const glm::vec3& scale)
   // get rid of current scale factor (https://gamedev.stackexchange.com/questions/119702/fastest-way-to-neutralize-scale-in-the-transform-matrix)
   for (int i = 0; i < 3; i++)
     m_model_mat[i] = glm::normalize(m_model_mat[i]);
-  m_scale = scale;
   m_model_mat = glm::scale(m_model_mat, scale);
 }
 
 void Object3D::translate(const glm::vec3& translation)
 {
   m_model_mat = glm::translate(m_model_mat, translation);
-  m_translation = glm::vec3(m_model_mat[3]);
 }
 
 void Object3D::set_texture(const std::string& filename)

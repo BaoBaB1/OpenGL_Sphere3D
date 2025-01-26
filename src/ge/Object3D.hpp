@@ -38,8 +38,8 @@ public:
   BoundingBox calculate_bbox();
   float rotation_angle() const { return m_rotation_angle; }
   glm::vec3 rotation_axis() const { return m_rotation_axis; }
-  glm::vec3 translation() const { return m_translation; }
-  glm::vec3 scale() const { return m_scale; }
+  glm::vec3 translation() const { return m_model_mat[3]; }
+  glm::vec3 scale() const { return glm::vec3(glm::length(m_model_mat[0]), glm::length(m_model_mat[1]), glm::length(m_model_mat[2])); }
   void light_source(bool val) { set_flag(LIGHT_SOURCE, val); }
   void rotating(bool val) { set_flag(ROTATE_EACH_FRAME, val); }
   void visible_normals(bool val) { set_flag(VISIBLE_NORMALS, val); }
@@ -53,6 +53,7 @@ public:
   bool has_active_texture() const;
   ShadingMode shading_mode() const { return m_shading_mode; }
   const glm::mat4& model_matrix() const { return m_model_mat; }
+  glm::mat4& model_matrix() { return m_model_mat; }
   const glm::vec4& color() const { return m_color; }
   Mesh& mesh(size_t index) { return m_meshes[index]; }
   const Mesh& mesh(size_t index) const { return m_meshes[index]; }
@@ -127,8 +128,6 @@ protected:
   float m_rotation_angle = 0.f;
   float m_delta_time = 0.f;
   glm::vec3 m_rotation_axis = glm::vec3(0.f);
-  glm::vec3 m_translation = glm::vec3(0.f);
-  glm::vec3 m_scale = glm::vec3(1.f);
   int m_flags = RESET_CACHED_NORMALS;
   ShadingMode m_shading_mode = ShadingMode::NO_SHADING;
   VertexFinder m_vertex_finder;
