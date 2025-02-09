@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <glad/gl.h>
+#include <glad/glad.h>
 
 struct Face {
 

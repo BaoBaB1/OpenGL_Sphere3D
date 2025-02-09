@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include "OpenGLObject.hpp"
 
 class VertexBufferObject : public OpenGLObject

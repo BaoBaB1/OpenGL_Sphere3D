@@ -1,14 +1,2 @@
-include(FetchContent)
-
-FetchContent_Declare(
-  glad
-  GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-  GIT_SHALLOW TRUE
-  GIT_TAG        v2.0.8
-  SOURCE_SUBDIR  cmake
-)
-
-FetchContent_MakeAvailable(glad)
-
-glad_add_library(glad STATIC REPRODUCIBLE LOADER API gl:core=4.6)
-
+add_library(glad STATIC ${CMAKE_CURRENT_SOURCE_DIR}/src/glad.c)
+target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
