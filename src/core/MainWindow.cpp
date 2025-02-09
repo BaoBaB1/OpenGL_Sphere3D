@@ -35,7 +35,7 @@ MainWindow::MainWindow(int width, int height, const char* title) :
   glfwMakeContextCurrent(m_window);
   glfwSetWindowSizeLimits(m_window, 1600, 900, GLFW_DONT_CARE, GLFW_DONT_CARE);
   glfwSetWindowFocusCallback(m_window, window_focus_callback);
-  gladLoadGL(glfwGetProcAddress);
+  gladLoadGL();
   glViewport(0, 0, m_width, m_height);
 }
 
