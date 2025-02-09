@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <glm/vec3.hpp>
 #include <GLFW/glfw3.h>
 #include <map>

@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <optional>
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <memory>
 #include "ge/Vertex.hpp"
 #include "ge/Face.hpp"

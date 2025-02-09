@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include "OpenGLObject.hpp"
 
 class ElementBufferObject : public OpenGLObject 
