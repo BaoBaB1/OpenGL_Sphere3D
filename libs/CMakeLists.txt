@@ -3,6 +3,7 @@ add_subdirectory(assimp)
 add_subdirectory(glfw)
 add_subdirectory(glm)
 add_subdirectory(ImGuiFileDialog)
+add_subdirectory(gtest)
 
 
 # These are without CMakeLists file, so need to configure them manually later. Here only fetch them

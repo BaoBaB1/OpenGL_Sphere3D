@@ -15,9 +15,12 @@ file(GLOB_RECURSE SOURCES
 	"src/*.vert"
 	)
 
-add_executable(${PROJECT_NAME} "src/core/OpenGLMain.cpp" ${SOURCES})
+add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/src/core/OpenGLMain.cpp ${SOURCES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(glm PUBLIC GLM_ENABLE_EXPERIMENTAL)
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw glad glm imgui assimp ImGuiFileDialog ImGuizmo stb)
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${ROOT_DIR})
+
+add_subdirectory(tests)
+
