@@ -54,7 +54,7 @@ void MouseInputHandler::window_size_change_callback(GLFWwindow* window, int widt
   // to avoid crash when window is completely minimized
   if (width == 0 || height == 0)
     return;
-  auto& s = Singleton<SceneRenderer>::instance();
+  auto& s = SceneRenderer::instance();
   s.m_window->set_width(width);
   s.m_window->set_height(height);
   s.m_projection_mat = glm::mat4(1.f);

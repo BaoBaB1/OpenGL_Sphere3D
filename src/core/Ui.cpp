@@ -147,7 +147,7 @@ void Ui::render()
     const ImVec2 sz = ImVec2(m_window->width(), m_window->height());
     constexpr float scale_factor = 0.2f;
     ImGui::SetNextWindowSize(ImVec2(sz.x * scale_factor, sz.y - menubar_size.y - 1));
-    ImGui::SetNextWindowPos(ImVec2(sz.x - sz.x * scale_factor - 8, menubar_size.y - 1));
+    ImGui::SetNextWindowPos(ImVec2(sz.x - sz.x * scale_factor, menubar_size.y - 1));
     ImGui::Begin("Scene properties", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("Scene objects");
@@ -363,11 +363,11 @@ void Ui::render_object_properties(Object3D& drawable)
     ImGui::Separator();
     ImGui::PushItemWidth(-1);
     ImGui::Text("Color");
-    if (ImGui::ColorEdit4("Choose color", &drawable.m_color.x))
+    if (ImGui::ColorEdit4("##Color", &drawable.m_color.x))
       drawable.set_color(drawable.m_color);
     ImGui::PopItemWidth();
 
-    ImGui::Dummy(ImVec2(0, 10));
+    ImGui::Separator();
     ImGui::Text("Miscellaneous");
     bool is_bbox_visible = drawable.is_bbox_visible();
     if (ImGui::Checkbox("Show bounding box", &is_bbox_visible))
