@@ -33,6 +33,12 @@ void Camera::move(Direction direction)
   case Direction::RIGHT:
     m_position += glm::normalize(glm::cross(m_target, m_up)) * m_actual_speed;
     break;
+  case Direction::UP:
+    m_position += m_actual_speed * m_up;
+    break;
+  case Direction::DOWN:
+    m_position -= m_actual_speed * m_up;
+    break;
   default:
     break;
   }

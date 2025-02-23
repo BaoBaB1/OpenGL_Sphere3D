@@ -13,7 +13,9 @@ public:
     FORWARD = 1,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
   };
 public:
   Camera();

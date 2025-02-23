@@ -18,6 +18,8 @@ public:
     ARROW_LEFT = GLFW_KEY_LEFT,
     ARROW_RIGHT = GLFW_KEY_RIGHT,
     LEFT_SHIFT = GLFW_KEY_LEFT_SHIFT,
+    SPACE = GLFW_KEY_SPACE,
+    LEFT_CTRL = GLFW_KEY_LEFT_CONTROL,
     ESC = GLFW_KEY_ESCAPE,
     UNKNOWN = 0xFFFF
   };
@@ -31,7 +33,7 @@ public:
 
   static constexpr InputKey registered_keys[] = {
     W, A, S, D, ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, LEFT_SHIFT,
-    ESC, T, R
+    ESC, T, R, SPACE, LEFT_CTRL
   };
 
   OnlyMovable(KeyboardHandler)

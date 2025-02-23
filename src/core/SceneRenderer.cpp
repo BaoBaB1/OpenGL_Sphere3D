@@ -366,6 +366,15 @@ void SceneRenderer::handle_input()
       m_drawables[idx]->select(false);
     }
   }
+  if (kh->get_keystate(InputKey::SPACE) == KeyboardHandler::PRESSED)
+  {
+    m_camera.move(Camera::Direction::UP);
+  }
+  if (kh->get_keystate(InputKey::LEFT_CTRL) == KeyboardHandler::PRESSED)
+  {
+    m_camera.move(Camera::Direction::DOWN);
+  }
+
   if (kh->get_keystate(InputKey::LEFT_SHIFT) == KeyboardHandler::PRESSED)
   {
     m_camera.freeze();
